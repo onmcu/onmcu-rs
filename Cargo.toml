@@ -1,14 +1,15 @@
 [package]
 name = "onmcu"
-version = "0.0.0"
-edition = "2021"
-authors = ["Joel Schulz-Andres <joel@systemscape.de>", "Julian Dickert <julian@systemscape.de>"]
+version = "0.1.0"
+edition = "2024"
+authors = ["Joel Schulz-Andres <joel@onmcu.com>", "Julian Dickert <julian@onmcu.com>"]
 description = "Test onmcu"
 license = "MIT"
 categories = ["no-std", "embedded", "development-tools "]
 readme = "README.md"
 
 [dependencies]
+clap = { version = "4.5.40", features = ["derive", "env"] }
 
 [badges]
 maintenance = { status = "actively-developed" }
