@@ -34,7 +34,7 @@ jobs:
       SOURCE_REPO: ${{ github.event.client_payload.source_repo || inputs.source_repo }}
       RELEASE_URL: ${{ github.event.client_payload.release_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Download openapi.json from source release
         env:
@@ -58,7 +58,7 @@ jobs:
 
       - name: Open sync PR
         if: steps.diff.outputs.changed == 'true'
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           branch: openapi-sync/${{ env.VERSION }}
           delete-branch: true

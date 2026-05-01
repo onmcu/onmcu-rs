@@ -20,7 +20,7 @@ jobs:
     if: startsWith(github.event.release.tag_name, 'v') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Verify Cargo.toml version matches release tag
