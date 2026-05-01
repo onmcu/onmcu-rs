@@ -1,6 +1,6 @@
 use tracing_subscriber::FmtSubscriber;
 
-use onmcu_cli::*;
+use onmcu::*;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

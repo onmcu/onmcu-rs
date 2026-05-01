@@ -75,13 +75,11 @@ jobs:
             [`${{ env.VERSION }}`](${{ env.RELEASE_URL }}).
 
             **Reviewer checklist**
-            - [ ] Read the diff under `openapi/openapi.json` carefully — pay
-              attention to changes in request/response types used directly
-              by `src/commands/*` and `src/upload/*`.
+            - [ ] Read the `openapi.json` diff carefully — pay attention to
+              changes in request/response types the CLI uses directly.
             - [ ] Decide whether the API delta is patch / minor / major and
               bump `Cargo.toml` `version` accordingly **in this PR** before
               merging.
-            - [ ] Verify CI is green — `build.rs` regenerates
-              `src/api/generated.rs` from the new spec, so type errors
-              will surface there.
+            - [ ] Verify CI is green — `build.rs` regenerates the API
+              client from the new spec, so type errors will surface there.
           labels: openapi-sync

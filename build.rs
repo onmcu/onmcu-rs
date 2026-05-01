@@ -21,14 +21,6 @@ fn main() {
     let ast = syn::parse2(tokens).expect("progenitor produced tokens that did not parse as Rust");
     let content = prettyplease::unparse(&ast);
 
-    // Generate only typespace because the client currently doesn't support setting (auth-)headers
-    // per request, only once for the entire reqwest client.
-    let type_space = generator.get_type_space();
-    let _contents = prettyplease::unparse(
-        &syn::parse2::<syn::File>(type_space.to_stream())
-            .expect("progenitor produced typespace tokens that did not parse as Rust"),
-    );
-
     let out_dir = std::env::var("OUT_DIR").expect("cargo did not set OUT_DIR");
     let mut out_file = std::path::Path::new(&out_dir).to_path_buf();
     out_file.push("codegen.rs");
