@@ -1,0 +1,29 @@
+build.rs
+  9aa149ca46fe08e7 8-12,18-21,27-30,32-33,36-37
+src/upload/config.rs
+  9aa149ca46fe08e7 25,44-46
+.github/workflows/publish-crates.yml
+  9aa149ca46fe08e7 32-33
+.github/workflows/openapi-sync.yml
+  9aa149ca46fe08e7 39-52,64-65
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "ac0ba8c703a20f7085f085c6eccc92ed6fb0194d",
+  "prompts": {
+    "9aa149ca46fe08e7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e0cb0bb2-3541-422c-ae43-704a040f929e",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "JuliDi",
+      "messages": [],
+      "total_additions": 40,
+      "total_deletions": 30,
+      "accepted_lines": 40,
+      "overriden_lines": 0
+    }
+  }
+}
