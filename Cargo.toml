@@ -2,15 +2,84 @@
 name = "onmcu"
 version = "0.1.0"
 edition = "2024"
-authors = ["Joel Schulz-Andres <joel@onmcu.com>", "Julian Dickert <julian@onmcu.com>"]
-description = "Test onmcu"
+authors = [
+    "Joel Schulz-Andres <joel@onmcu.com>",
+    "Julian Dickert <julian@onmcu.com>",
+]
+description = "A CLI tool for remote MCU development and testing on the OnMCU platform"
 license = "MIT"
-categories = ["no-std", "embedded", "development-tools "]
+repository = "https://github.com/onmcu/onmcu-rs"
+homepage = "https://onmcu.com"
+documentation = "https://docs.onmcu.com"
+categories = ["embedded", "development-tools", "command-line-utilities"]
+keywords = ["mcu", "embedded", "remote", "flashing", "ci"]
 readme = "README.md"
+rust-version = "1.85"
+
+[lib]
+name = "onmcu_cli"
+path = "src/lib.rs"
+
+[[bin]]
+name = "onmcu"
+path = "src/main.rs"
 
 [dependencies]
-clap = { version = "4.5.40", features = ["derive", "env"] }
+anyhow = "1.0"
+base64 = "0.22.1"
+chrono = { version = "0.4.44", default-features = false, features = [
+    "std",
+    "serde",
+    "alloc",
+] }
+clap = { version = "4.6.1", features = ["cargo", "derive", "env"] }
+futures = "0.3.32"
+indicatif = "0.18.4"
+keyring = { version = "3.6.3", features = [
+    "apple-native",
+    "windows-native",
+    "sync-secret-service",
+    "crypto-rust",
+    "vendored",
+] }
+progenitor-client = "0.14.0"
+rand = "0.10.1"
+reqwest = { version = "0.13.2", default-features = false, features = [
+    "json",
+    "rustls",
+    "stream",
+] }
+secrecy = { version = "0.10.3", features = ["serde"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+sha3 = "0.11.0"
+thiserror = "2"
+tokio = { version = "1.52.1", features = ["full"] }
+tokio-tungstenite = { version = "0.29.0", default-features = false, features = [
+    "rustls-tls-webpki-roots",
+] }
+toml = "1.1.2"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["json", "ansi"] }
+url = { version = "2.5.8", features = ["serde"] }
+uuid = { version = "1.23.1", features = ["serde"] }
 
-[badges]
-maintenance = { status = "actively-developed" }
+[dev-dependencies]
+test-log = { version = "0.2.20", default-features = false, features = ["trace"] }
 
+[build-dependencies]
+prettyplease = "0.2.37"
+progenitor = "0.14.0"
+serde_json = "1.0.149"
+syn = "2.0"
+
+[lints.clippy]
+uninlined_format_args = "allow"
+
+[profile.release]
+strip = true
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
