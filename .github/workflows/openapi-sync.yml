@@ -36,6 +36,20 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      # Defense-in-depth: VERSION flows from a `repository_dispatch`
+      # client_payload (or a `workflow_dispatch` input) straight into
+      # `gh release download "$VERSION"`. The dispatching repo is trusted
+      # today, but a malformed or hostile value (e.g. shell metacharacters,
+      # path traversal) could surprise us if the trust boundary ever
+      # weakens. Reject anything that isn't a SemVer-shaped tag up front.
+      - name: Validate VERSION
+        run: |
+          set -euo pipefail
+          if ! [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.-]+)?$ ]]; then
+            echo "::error::VERSION '$VERSION' is not a valid SemVer tag (expected vMAJOR.MINOR.PATCH[-pre])"
+            exit 1
+          fi
+
       - name: Download openapi.json from source release
         env:
           GH_TOKEN: ${{ secrets.SOFTWARE_RELEASES_RO }}
@@ -47,17 +61,9 @@ jobs:
             --output openapi/openapi.json \
             --clobber
 
-      - name: Detect changes
-        id: diff
-        run: |
-          if git diff --quiet openapi/openapi.json; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
-
+      # peter-evans/create-pull-request no-ops when the working tree is
+      # clean, so an explicit "did anything change" gate isn't needed.
       - name: Open sync PR
-        if: steps.diff.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v8
         with:
           branch: openapi-sync/${{ env.VERSION }}

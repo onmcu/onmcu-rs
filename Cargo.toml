@@ -10,7 +10,6 @@ description = "A CLI tool for remote MCU development and testing on the OnMCU pl
 license = "MIT"
 repository = "https://github.com/onmcu/onmcu-rs"
 homepage = "https://onmcu.com"
-documentation = "https://docs.onmcu.com"
 categories = ["embedded", "development-tools", "command-line-utilities"]
 keywords = ["mcu", "embedded", "remote", "flashing", "ci"]
 readme = "README.md"
@@ -30,7 +29,6 @@ base64 = "0.22.1"
 chrono = { version = "0.4.44", default-features = false, features = [
     "std",
     "serde",
-    "alloc",
 ] }
 clap = { version = "4.6.1", features = ["cargo", "derive", "env"] }
 futures = "0.3.32"
@@ -63,9 +61,6 @@ tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["json", "ansi"] }
 url = { version = "2.5.8", features = ["serde"] }
 uuid = { version = "1.23.1", features = ["serde"] }
-
-[dev-dependencies]
-test-log = { version = "0.2.20", default-features = false, features = ["trace"] }
 
 [build-dependencies]
 prettyplease = "0.2.37"

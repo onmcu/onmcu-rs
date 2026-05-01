@@ -29,7 +29,8 @@ jobs:
           TAG: ${{ github.event.release.tag_name }}
         run: |
           set -euo pipefail
-          CARGO_VERSION=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
+          CARGO_VERSION=$(cargo metadata --format-version 1 --no-deps \
+            | jq -r '.packages[] | select(.name == "onmcu") | .version')
           EXPECTED="${TAG#v}"
           if [ "$CARGO_VERSION" != "$EXPECTED" ]; then
             echo "::error::Cargo.toml version $CARGO_VERSION does not match release tag $TAG (expected $EXPECTED)"

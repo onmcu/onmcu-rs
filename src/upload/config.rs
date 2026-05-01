@@ -22,7 +22,7 @@ pub struct UploadConfig {
 impl Default for UploadConfig {
     fn default() -> Self {
         Self {
-            server: Url::from_str("http://localhost:8020")
+            server: Url::from_str("https://ctrl1.onmcu.com")
                 .expect("Parsing URL from str should be verified by a test"),
             chunk_size: 5,
             retries: 3,
@@ -41,9 +41,9 @@ mod tests {
         let config = UploadConfig::default();
 
         // Verify the URL was parsed correctly
-        assert_eq!(config.server.scheme(), "http");
-        assert_eq!(config.server.host_str(), Some("localhost"));
-        assert_eq!(config.server.port(), Some(8020));
+        assert_eq!(config.server.scheme(), "https");
+        assert_eq!(config.server.host_str(), Some("ctrl1.onmcu.com"));
+        assert_eq!(config.server.port(), None);
 
         // Verify other default values
         assert_eq!(config.chunk_size, 5);
