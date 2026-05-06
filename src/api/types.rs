@@ -1,4 +1,4 @@
-use keyring::{Entry, Error as KeyringError};
+use keyring_core::{Entry, Error as KeyringError};
 use secrecy::SecretString;
 use thiserror::Error;
 use url::Url;

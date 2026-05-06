@@ -1,3 +1,12 @@
+#[cfg(target_os = "linux")]
+use linux_keyutils_keyring_store::Store;
+
+#[cfg(target_os = "macos")]
+use apple_native_keyring_store::Store;
+
+#[cfg(target_os = "windows")]
+use windows_native_keyring_store::Store;
+
 use tracing_subscriber::FmtSubscriber;
 
 use onmcu::*;
@@ -21,5 +30,12 @@ async fn main() -> anyhow::Result<()> {
         .finish();
     tracing::subscriber::set_global_default(sub)?;
 
-    cli.dispatch().await
+    // Set keyutils backend as the default store
+    keyring_core::set_default_store(Store::new().unwrap());
+
+    let res = cli.dispatch().await;
+
+    keyring_core::unset_default_store();
+
+    res
 }
