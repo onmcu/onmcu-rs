@@ -1,0 +1,3491 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "OnMCU Controller",
+    "description": "OnMCU Controller API",
+    "contact": {
+      "email": "contact@onmcu.com"
+    },
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/admin/board": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List all boards with enriched metadata",
+        "operationId": "admin_list_boards",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "description": "Maximum number of results to return (default: 1000)",
+            "schema": {
+              "nullable": true,
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "description": "Number of results to skip (default: 0)",
+            "schema": {
+              "nullable": true,
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Array_of_AdminBoard",
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminBoard"
+                  }
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Add a new board definition",
+        "operationId": "create_board",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBoardArgs"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "successful creation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdResponse"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/board/{id}": {
+      "put": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Update a board definition",
+        "operationId": "update_board",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Resource ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBoardArgs"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Null",
+                  "type": "string",
+                  "enum": [
+                    null
+                  ]
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/device": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List all devices with board/MCU/manufacturer info",
+        "operationId": "list_devices",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "description": "Maximum number of results to return (default: 1000)",
+            "schema": {
+              "nullable": true,
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "description": "Number of results to skip (default: 0)",
+            "schema": {
+              "nullable": true,
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Array_of_AdminDevice",
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminDevice"
+                  }
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Register a new device",
+        "operationId": "create_device",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDeviceArgs"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "successful creation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdResponse"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/device/{id}": {
+      "put": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Update a device (enable/disable, remap board)",
+        "operationId": "update_device",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Resource ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDeviceArgs"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Null",
+                  "type": "string",
+                  "enum": [
+                    null
+                  ]
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Delete a device and detach its jobs",
+        "operationId": "delete_device",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Resource ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "successful deletion"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/edge-server": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List all registered edge servers",
+        "operationId": "list_edge_servers",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "description": "Maximum number of results to return (default: 1000)",
+            "schema": {
+              "nullable": true,
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "description": "Number of results to skip (default: 0)",
+            "schema": {
+              "nullable": true,
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Array_of_AdminEdgeServer",
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminEdgeServer"
+                  }
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/edge-server/{id}": {
+      "put": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Update edge server metadata",
+        "operationId": "update_edge_server",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Resource ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEdgeServerArgs"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Null",
+                  "type": "string",
+                  "enum": [
+                    null
+                  ]
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/job": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List all jobs across all users",
+        "operationId": "admin_list_jobs",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "description": "Maximum number of results to return (default: 1000)",
+            "schema": {
+              "nullable": true,
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "description": "Number of results to skip (default: 0)",
+            "schema": {
+              "nullable": true,
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Array_of_AdminJob",
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminJob"
+                  }
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/job/{id}/cancel": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Admin: cancel any job by UUID (no ownership check)",
+        "operationId": "admin_cancel_job",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "description": "The actual UUID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "resource updated"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/manufacturer": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List all manufacturers",
+        "operationId": "list_manufacturers",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "description": "Maximum number of results to return (default: 1000)",
+            "schema": {
+              "nullable": true,
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "description": "Number of results to skip (default: 0)",
+            "schema": {
+              "nullable": true,
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Array_of_AdminManufacturer",
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminManufacturer"
+                  }
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Add a new manufacturer",
+        "operationId": "create_manufacturer",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateManufacturerArgs"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "successful creation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdResponse"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/manufacturer/{id}": {
+      "put": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Update a manufacturer name",
+        "operationId": "update_manufacturer",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Resource ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateManufacturerArgs"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Null",
+                  "type": "string",
+                  "enum": [
+                    null
+                  ]
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/mcu": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List all MCUs",
+        "operationId": "list_mcus",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "description": "Maximum number of results to return (default: 1000)",
+            "schema": {
+              "nullable": true,
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "description": "Number of results to skip (default: 0)",
+            "schema": {
+              "nullable": true,
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Array_of_AdminMcu",
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminMcu"
+                  }
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Add a new MCU",
+        "operationId": "create_mcu",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMcuArgs"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "successful creation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdResponse"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/mcu/{id}": {
+      "put": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Update an MCU name",
+        "operationId": "update_mcu",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Resource ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMcuArgs"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Null",
+                  "type": "string",
+                  "enum": [
+                    null
+                  ]
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/user": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List all users",
+        "operationId": "list_users",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "description": "Maximum number of results to return (default: 1000)",
+            "schema": {
+              "nullable": true,
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "description": "Number of results to skip (default: 0)",
+            "schema": {
+              "nullable": true,
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Array_of_AdminUser",
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminUser"
+                  }
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/user/{id}": {
+      "put": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Update user settings (quota)",
+        "operationId": "update_user",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Resource ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserArgs"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Null",
+                  "type": "string",
+                  "enum": [
+                    null
+                  ]
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/board": {
+      "get": {
+        "summary": "List available board types for job submission",
+        "operationId": "list_boards",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "description": "Maximum number of items to return (1-100, default: 50)",
+            "schema": {
+              "nullable": true,
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "description": "Number of items to skip (default: 0)",
+            "schema": {
+              "nullable": true,
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_for_BoardInfo"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/job": {
+      "get": {
+        "summary": "List jobs that belong to the caller",
+        "description": "Paginated and sorted. Defaults: `order_by=submitted_at`, `direction=desc`.",
+        "operationId": "list_jobs",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "direction",
+            "description": "Sort direction (default: `desc`)",
+            "schema": {
+              "$ref": "#/components/schemas/SortDirection"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "description": "Maximum number of items to return (1-100, default: 50)",
+            "schema": {
+              "nullable": true,
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "description": "Number of items to skip (default: 0)",
+            "schema": {
+              "nullable": true,
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "order_by",
+            "description": "Column to sort by (endpoint default)",
+            "schema": {
+              "$ref": "#/components/schemas/JobSortColumn"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_for_JobInfo"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new job placeholder and return an upload prefix",
+        "operationId": "submit_job",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobSubmit"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "successfully enqueued operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAccepted"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/job/{id}": {
+      "get": {
+        "summary": "Fetch status & result of a single job",
+        "operationId": "get_job",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "description": "The actual UUID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobInfo"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/job/{id}/cancel": {
+      "post": {
+        "summary": "Request cancellation of a running or dispatched job",
+        "operationId": "cancel_job",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "description": "The actual UUID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "resource updated"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/job/{id}/chunk": {
+      "post": {
+        "summary": "Upload a chunk of the job binary",
+        "operationId": "upload_job_chunk",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "description": "The actual UUID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "idx",
+            "description": "Zero‑based chunk index",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            }
+          },
+          {
+            "in": "query",
+            "name": "total",
+            "description": "Total number of chunks",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "resource updated"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/job/{id}/finalize": {
+      "post": {
+        "summary": "Finalize the job upload and send the binary",
+        "operationId": "finalize_job_upload",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "description": "The actual UUID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Null",
+                  "type": "string",
+                  "enum": [
+                    null
+                  ]
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/job/{id}/logs": {
+      "get": {
+        "summary": "Stream logs for job with `{id}` via websockets.",
+        "description": "Every time this endpoint is requested, all existing log messages are streamed again via the websocket (up to a certain limit in data retention).",
+        "operationId": "stream_job_logs",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "description": "The actual UUID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "101": {
+            "description": "Negotiating protocol upgrade from HTTP/1.1 to WebSocket"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "x-dropshot-websocket": {}
+      }
+    },
+    "/jobs/stats": {
+      "get": {
+        "summary": "Get job statistics (counts per status) for the authenticated user",
+        "operationId": "get_job_stats",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStats"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/openapi": {
+      "get": {
+        "summary": "Get OpenAPI definition as JSON",
+        "operationId": "get_openapi",
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/upload-limits": {
+      "get": {
+        "summary": "Get upload size limits for job files",
+        "operationId": "get_upload_limits",
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadLimits"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/upload-quota": {
+      "get": {
+        "summary": "Get upload quota information for the authenticated user",
+        "operationId": "get_upload_quota",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadQuota"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/user": {
+      "get": {
+        "summary": "Get information about the current user",
+        "operationId": "get_user",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserData"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new user (called by webapp during registration)",
+        "description": "Requires admin privileges.",
+        "operationId": "create_user",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserArgs"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "successful creation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserData"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/user/apikey": {
+      "get": {
+        "summary": "List all API keys for the current user",
+        "operationId": "get_apikeys",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyList"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "summary": "Add a new API key for the current user",
+        "operationId": "new_apikey",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "name",
+            "description": "Name of the API key",
+            "schema": {
+              "nullable": true,
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "valid_days",
+            "description": "In how many days the API key should expire. 0 means never expire.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "successful creation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeneratedApiKey"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/user/apikey/{id}": {
+      "put": {
+        "summary": "Endpoint for renaming an API Key",
+        "operationId": "rename_apikey",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "description": "The actual UUID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Null",
+                  "type": "string",
+                  "enum": [
+                    null
+                  ]
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Endpoint for deleting an API Key",
+        "operationId": "delete_apikey",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "description": "The actual UUID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "successful deletion"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AdminBoard": {
+        "description": "Enriched board info for admin use",
+        "type": "object",
+        "properties": {
+          "device_count": {
+            "description": "Number of enabled devices using this board",
+            "type": "integer",
+            "format": "uint32",
+            "minimum": 0
+          },
+          "id": {
+            "description": "Database primary key",
+            "type": "integer",
+            "format": "int64"
+          },
+          "manufacturer_id": {
+            "description": "Manufacturer ID",
+            "type": "integer",
+            "format": "int64"
+          },
+          "manufacturer_name": {
+            "description": "Manufacturer name (joined)",
+            "type": "string"
+          },
+          "mcu_id": {
+            "description": "MCU ID",
+            "type": "integer",
+            "format": "int64"
+          },
+          "mcu_name": {
+            "description": "MCU name (joined)",
+            "type": "string"
+          },
+          "name": {
+            "description": "Board name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "device_count",
+          "id",
+          "manufacturer_id",
+          "manufacturer_name",
+          "mcu_id",
+          "mcu_name",
+          "name"
+        ]
+      },
+      "AdminDevice": {
+        "description": "Device with board/MCU/manufacturer details",
+        "type": "object",
+        "properties": {
+          "board_id": {
+            "description": "Board ID (foreign key)",
+            "type": "integer",
+            "format": "int64"
+          },
+          "board_name": {
+            "description": "Board name",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether the device is enabled",
+            "type": "boolean"
+          },
+          "flash_cycles": {
+            "description": "Number of flash cycles",
+            "type": "integer",
+            "format": "uint32",
+            "minimum": 0
+          },
+          "id": {
+            "description": "Database primary key",
+            "type": "integer",
+            "format": "int64"
+          },
+          "install_date": {
+            "description": "Installation date",
+            "type": "string",
+            "format": "date-time"
+          },
+          "manufacturer_name": {
+            "description": "Manufacturer name",
+            "type": "string"
+          },
+          "mcu_name": {
+            "description": "MCU name",
+            "type": "string"
+          },
+          "probe_id": {
+            "description": "USB probe identifier",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProbeId"
+              }
+            ]
+          }
+        },
+        "required": [
+          "board_id",
+          "board_name",
+          "enabled",
+          "flash_cycles",
+          "id",
+          "install_date",
+          "manufacturer_name",
+          "mcu_name",
+          "probe_id"
+        ]
+      },
+      "AdminEdgeServer": {
+        "description": "Edge server info",
+        "type": "object",
+        "properties": {
+          "description": {
+            "description": "Description",
+            "type": "string"
+          },
+          "id": {
+            "description": "Database primary key",
+            "type": "integer",
+            "format": "int64"
+          },
+          "location": {
+            "description": "Physical location",
+            "type": "string"
+          },
+          "setup_time": {
+            "description": "Setup timestamp",
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "description",
+          "id",
+          "location",
+          "setup_time"
+        ]
+      },
+      "AdminJob": {
+        "description": "Job info for admin view",
+        "type": "object",
+        "properties": {
+          "board_id": {
+            "description": "Board ID",
+            "type": "integer",
+            "format": "int64"
+          },
+          "device_id": {
+            "nullable": true,
+            "description": "Device ID (if assigned)",
+            "type": "integer",
+            "format": "int64"
+          },
+          "ended": {
+            "nullable": true,
+            "description": "When the job ended",
+            "type": "string",
+            "format": "date-time"
+          },
+          "exit_status": {
+            "nullable": true,
+            "description": "Exit status",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExitStatus"
+              }
+            ]
+          },
+          "id": {
+            "description": "Database primary key",
+            "type": "integer",
+            "format": "int64"
+          },
+          "priority": {
+            "description": "Job priority",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Priority"
+              }
+            ]
+          },
+          "started": {
+            "nullable": true,
+            "description": "When the job started",
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "description": "Job status",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/JobStatus"
+              }
+            ]
+          },
+          "submission_time": {
+            "description": "Submission time",
+            "type": "string",
+            "format": "date-time"
+          },
+          "user_id": {
+            "description": "User ID who submitted the job",
+            "type": "integer",
+            "format": "int64"
+          },
+          "user_uuid": {
+            "nullable": true,
+            "description": "User UUID who submitted the job",
+            "type": "string",
+            "format": "uuid"
+          },
+          "uuid": {
+            "description": "Job UUID",
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "board_id",
+          "id",
+          "priority",
+          "status",
+          "submission_time",
+          "user_id",
+          "uuid"
+        ]
+      },
+      "AdminManufacturer": {
+        "description": "Manufacturer info",
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "Database primary key",
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "description": "Manufacturer name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "AdminMcu": {
+        "description": "MCU info",
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "Database primary key",
+            "type": "integer",
+            "format": "int64"
+          },
+          "manufacturer_id": {
+            "description": "Manufacturer ID",
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "description": "MCU name (e.g. \"STM32F103RB\")",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "manufacturer_id",
+          "name"
+        ]
+      },
+      "AdminUser": {
+        "description": "User info for admin view",
+        "type": "object",
+        "properties": {
+          "address": {
+            "nullable": true,
+            "description": "Address",
+            "type": "string"
+          },
+          "email": {
+            "description": "Email",
+            "type": "string"
+          },
+          "first_name": {
+            "description": "First name",
+            "type": "string"
+          },
+          "id": {
+            "description": "Database primary key",
+            "type": "integer",
+            "format": "int64"
+          },
+          "last_name": {
+            "description": "Last name",
+            "type": "string"
+          },
+          "phone": {
+            "nullable": true,
+            "description": "Phone",
+            "type": "string"
+          },
+          "upload_quota_count": {
+            "description": "Upload quota",
+            "type": "integer",
+            "format": "uint16",
+            "minimum": 0
+          },
+          "uuid": {
+            "description": "User UUID",
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "email",
+          "first_name",
+          "id",
+          "last_name",
+          "upload_quota_count",
+          "uuid"
+        ]
+      },
+      "ApiKeyList": {
+        "description": "List of API keys for the current user",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/ReducedApiKey"
+        }
+      },
+      "BoardInfo": {
+        "description": "Metadata for a flash‑able board",
+        "type": "object",
+        "properties": {
+          "board_mpn": {
+            "description": "Board manufacturer part number e.g. \"NUCLEO‑F103RB\"",
+            "type": "string"
+          },
+          "manufacturer_name": {
+            "description": "Manufacturer name, e.g. \"ST Microelectronics\"",
+            "type": "string"
+          },
+          "mcu_mpn": {
+            "description": "MCU manufacturer part number, e.g. \"STM32F103RB\"",
+            "type": "string"
+          }
+        },
+        "required": [
+          "board_mpn",
+          "manufacturer_name",
+          "mcu_mpn"
+        ]
+      },
+      "CreateBoardArgs": {
+        "description": "Arguments for creating a new board",
+        "type": "object",
+        "properties": {
+          "manufacturer_id": {
+            "description": "Manufacturer ID",
+            "type": "integer",
+            "format": "int64"
+          },
+          "mcu_id": {
+            "description": "MCU ID",
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "description": "Board name (e.g. \"NUCLEO-F103RB\")",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "manufacturer_id",
+          "mcu_id",
+          "name"
+        ]
+      },
+      "CreateDeviceArgs": {
+        "description": "Arguments for creating a new device",
+        "type": "object",
+        "properties": {
+          "board_id": {
+            "description": "Board ID to associate the device with",
+            "type": "integer",
+            "format": "int64"
+          },
+          "enabled": {
+            "description": "Whether the device starts enabled",
+            "type": "boolean"
+          },
+          "probe_id": {
+            "description": "USB probe identifier. Held as a raw `String` here (not [`ProbeId`]) because this is an untrusted input that we need to length-validate before wrapping; the handler converts it to `ProbeId` after validation.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "board_id",
+          "enabled",
+          "probe_id"
+        ]
+      },
+      "CreateManufacturerArgs": {
+        "description": "Arguments for creating a new manufacturer",
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "Manufacturer name",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "CreateMcuArgs": {
+        "description": "Arguments for creating a new MCU",
+        "type": "object",
+        "properties": {
+          "manufacturer_id": {
+            "description": "Manufacturer ID",
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "description": "MCU name (e.g. \"STM32F103RB\")",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "manufacturer_id",
+          "name"
+        ]
+      },
+      "CreateUserArgs": {
+        "description": "Arguments for creating a new user",
+        "type": "object",
+        "properties": {
+          "city": {
+            "description": "City of the user's address",
+            "type": "string"
+          },
+          "country": {
+            "description": "Country of the user's address",
+            "type": "string"
+          },
+          "email": {
+            "description": "Email address of the user",
+            "type": "string"
+          },
+          "first_name": {
+            "description": "First name of the user",
+            "type": "string"
+          },
+          "last_name": {
+            "description": "Last name of the user",
+            "type": "string"
+          },
+          "phone": {
+            "description": "Phone number of the user",
+            "type": "string"
+          },
+          "street_address": {
+            "description": "Street address of the user",
+            "type": "string"
+          },
+          "zip_code": {
+            "description": "Zip code of the user's address",
+            "type": "string"
+          }
+        },
+        "required": [
+          "city",
+          "country",
+          "email",
+          "first_name",
+          "last_name",
+          "phone",
+          "street_address",
+          "zip_code"
+        ]
+      },
+      "Error": {
+        "description": "Error information from a response.",
+        "type": "object",
+        "properties": {
+          "error_code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message",
+          "request_id"
+        ]
+      },
+      "ExitStatus": {
+        "description": "Terminal outcome of a finished job.",
+        "oneOf": [
+          {
+            "description": "Job completed successfully (exit code 0 or equivalent).",
+            "type": "string",
+            "enum": [
+              "FinishedSuccessfully"
+            ]
+          },
+          {
+            "description": "Job ran to completion but indicated failure.",
+            "type": "string",
+            "enum": [
+              "FinishedUnsuccessfully"
+            ]
+          },
+          {
+            "description": "Job was cancelled by the user.",
+            "type": "string",
+            "enum": [
+              "Canceled"
+            ]
+          },
+          {
+            "description": "Job was cancelled by the system due to timeout.",
+            "type": "string",
+            "enum": [
+              "Timeout"
+            ]
+          }
+        ]
+      },
+      "GeneratedApiKey": {
+        "example": {
+          "api_key": "1_1234abcdef10111213141516171819aa_CDrt-jdp8r9FOpxj7dF7G9jwp5nTdlBUIQrAsD9oPLM="
+        },
+        "description": "API key returned upon successful creation",
+        "type": "object",
+        "properties": {
+          "api_key": {
+            "description": "Key string that can be used for user auth",
+            "type": "string"
+          }
+        },
+        "required": [
+          "api_key"
+        ]
+      },
+      "IdResponse": {
+        "description": "Generic response with just an ID",
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "Database primary key of the created resource",
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "JobAccepted": {
+        "description": "Response structure returned after successfully submitting a job",
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "Unique identifier for the submitted job",
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "description": "Current status of the job",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/JobStatusView"
+              }
+            ]
+          },
+          "upload_prefix": {
+            "description": "URL prefix for uploading job chunks",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "upload_prefix"
+        ]
+      },
+      "JobInfo": {
+        "description": "Detailed information about a job",
+        "type": "object",
+        "properties": {
+          "board_name": {
+            "description": "Name of the board this job targets",
+            "type": "string"
+          },
+          "finished_at": {
+            "nullable": true,
+            "description": "Timestamp when job execution finished (if applicable)",
+            "type": "string",
+            "format": "date-time"
+          },
+          "started_at": {
+            "nullable": true,
+            "description": "Timestamp when job execution started (if applicable)",
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "description": "Current status of the job",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/JobStatusView"
+              }
+            ]
+          },
+          "submitted_at": {
+            "description": "Timestamp when the job was submitted",
+            "type": "string",
+            "format": "date-time"
+          },
+          "timeout_seconds": {
+            "description": "Maximum execution time allowed for this job in seconds",
+            "type": "integer",
+            "format": "uint32",
+            "minimum": 0
+          },
+          "uuid": {
+            "description": "Unique identifier for the job",
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "board_name",
+          "status",
+          "submitted_at",
+          "timeout_seconds",
+          "uuid"
+        ]
+      },
+      "JobStats": {
+        "description": "Job counts grouped by status",
+        "type": "object",
+        "properties": {
+          "cancelled": {
+            "description": "Jobs that were cancelled by the user",
+            "type": "integer",
+            "format": "int64"
+          },
+          "completed": {
+            "description": "Jobs completed successfully",
+            "type": "integer",
+            "format": "int64"
+          },
+          "dispatched": {
+            "description": "Jobs dispatched to a board, awaiting start",
+            "type": "integer",
+            "format": "int64"
+          },
+          "failed": {
+            "description": "Jobs that failed",
+            "type": "integer",
+            "format": "int64"
+          },
+          "pending": {
+            "description": "Jobs in pending state",
+            "type": "integer",
+            "format": "int64"
+          },
+          "running": {
+            "description": "Jobs currently running",
+            "type": "integer",
+            "format": "int64"
+          },
+          "timed_out": {
+            "description": "Jobs that were cancelled by the system because they exceeded their timeout",
+            "type": "integer",
+            "format": "int64"
+          },
+          "total": {
+            "description": "Total number of jobs",
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "cancelled",
+          "completed",
+          "dispatched",
+          "failed",
+          "pending",
+          "running",
+          "timed_out",
+          "total"
+        ]
+      },
+      "JobStatus": {
+        "description": "Lifecycle status of a job.",
+        "oneOf": [
+          {
+            "description": "Submitted but not yet assigned to an edge server.",
+            "type": "string",
+            "enum": [
+              "Pending"
+            ]
+          },
+          {
+            "description": "Sent to an edge server; waiting for the edge server to start it.",
+            "type": "string",
+            "enum": [
+              "Dispatched"
+            ]
+          },
+          {
+            "description": "Currently running on an edge server.",
+            "type": "string",
+            "enum": [
+              "Running"
+            ]
+          },
+          {
+            "description": "Finished (see [`ExitStatus`] for the outcome).",
+            "type": "string",
+            "enum": [
+              "Finished"
+            ]
+          }
+        ]
+      },
+      "JobStatusView": {
+        "description": "The status of a job in the system.",
+        "oneOf": [
+          {
+            "description": "Job has been submitted but not yet assigned to a board.",
+            "type": "string",
+            "enum": [
+              "pending"
+            ]
+          },
+          {
+            "description": "Job has been dispatched to a board and is awaiting start.",
+            "type": "string",
+            "enum": [
+              "dispatched"
+            ]
+          },
+          {
+            "description": "Job is currently being executed.",
+            "type": "string",
+            "enum": [
+              "running"
+            ]
+          },
+          {
+            "description": "Job has completed successfully.",
+            "type": "string",
+            "enum": [
+              "completed"
+            ]
+          },
+          {
+            "description": "Job execution failed.",
+            "type": "string",
+            "enum": [
+              "failed"
+            ]
+          },
+          {
+            "description": "Job was cancelled by the user.",
+            "type": "string",
+            "enum": [
+              "cancelled"
+            ]
+          },
+          {
+            "description": "Job was cancelled by the system because it exceeded its timeout.",
+            "type": "string",
+            "enum": [
+              "timeout"
+            ]
+          }
+        ]
+      },
+      "JobSubmit": {
+        "description": "Job submission data",
+        "type": "object",
+        "properties": {
+          "account_id": {
+            "nullable": true,
+            "description": "Optional – defaults to caller’s personal account if omitted.",
+            "type": "string",
+            "format": "uuid"
+          },
+          "board_name": {
+            "description": "OnMCU unique Board name",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "file_hash": {
+            "description": "SHA3-256 hash of the complete file as bytes (exactly 32 bytes)",
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "uint8",
+              "minimum": 0
+            },
+            "minItems": 32,
+            "maxItems": 32
+          },
+          "job_type": {
+            "description": "Whether this is a regular run job (flash + logstream) or an interactive debug session.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/JobType"
+              }
+            ]
+          },
+          "logging_config": {
+            "description": "How firmware logs should be captured.\n\n**IMPORTANT:** Currently only RTT is supported!\n\nAlways required, including for [`onmcu_common::domain::JobType::Debug`] jobs. For Debug jobs the value is currently **stored but not honored** — log capture during debug sessions is not yet implemented. Once it is, the field will start taking effect without an API change. Requiring it from day one keeps the API forward-compatible and avoids an `Option` rippling through the rest of the codebase.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LoggingConfig"
+              }
+            ]
+          },
+          "timeout_seconds": {
+            "description": "Allowed: 59 ‑ 86400 s (1 min – 24 h)",
+            "type": "integer",
+            "format": "uint32",
+            "minimum": 59,
+            "maximum": 86400
+          }
+        },
+        "required": [
+          "board_name",
+          "file_hash",
+          "job_type",
+          "logging_config",
+          "timeout_seconds"
+        ]
+      },
+      "JobType": {
+        "description": "Kind of job to execute on the edge server.\n\nDiscriminant `0` is the default for jobs migrated from pre-`0005` schemas, which were all [`JobType::Run`] by definition.",
+        "oneOf": [
+          {
+            "description": "Regular flash-and-run with logstream capture.",
+            "type": "string",
+            "enum": [
+              "Run"
+            ]
+          },
+          {
+            "description": "Interactive debug session (e.g., GDB).",
+            "type": "string",
+            "enum": [
+              "Debug"
+            ]
+          }
+        ]
+      },
+      "LoggingConfig": {
+        "description": "Source of firmware logs during a running job.",
+        "oneOf": [
+          {
+            "description": "RTT (Real-Time Transfer) over the debug probe.",
+            "type": "object",
+            "properties": {
+              "Rtt": {
+                "$ref": "#/components/schemas/RttConfig"
+              }
+            },
+            "required": [
+              "Rtt"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "description": "Serial/UART capture.",
+            "type": "object",
+            "properties": {
+              "Serial": {
+                "$ref": "#/components/schemas/SerialConfig"
+              }
+            },
+            "required": [
+              "Serial"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "PaginatedResponse_for_BoardInfo": {
+        "description": "Paginated response wrapper for list endpoints",
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "The items on this page",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BoardInfo"
+            }
+          },
+          "total_count": {
+            "description": "Total number of items across all pages",
+            "type": "integer",
+            "format": "uint32",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "items",
+          "total_count"
+        ]
+      },
+      "PaginatedResponse_for_JobInfo": {
+        "description": "Paginated response wrapper for list endpoints",
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "The items on this page",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobInfo"
+            }
+          },
+          "total_count": {
+            "description": "Total number of items across all pages",
+            "type": "integer",
+            "format": "uint32",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "items",
+          "total_count"
+        ]
+      },
+      "Priority": {
+        "description": "Scheduling priority for a job.",
+        "oneOf": [
+          {
+            "description": "Normal priority — the default for user-submitted jobs.",
+            "type": "string",
+            "enum": [
+              "Normal"
+            ]
+          },
+          {
+            "description": "Elevated priority — scheduled ahead of `Normal`.",
+            "type": "string",
+            "enum": [
+              "High"
+            ]
+          },
+          {
+            "description": "Reduced priority — scheduled behind `Normal`.",
+            "type": "string",
+            "enum": [
+              "Low"
+            ]
+          }
+        ]
+      },
+      "ProbeId": {
+        "description": "Probe identifier as a `VID:PID:SerialNumber` USB string.\n\nUniquely identifies a USB debug probe attached to an edge server.",
+        "type": "string"
+      },
+      "ReducedApiKey": {
+        "description": "DbApiKey with reduced number of fields",
+        "type": "object",
+        "properties": {
+          "created_at": {
+            "description": "Key creation timestamp",
+            "type": "string",
+            "format": "date-time"
+          },
+          "expires_at": {
+            "nullable": true,
+            "description": "Optional key expiry",
+            "type": "string",
+            "format": "date-time"
+          },
+          "name": {
+            "description": "Custom name of the ApiKey",
+            "type": "string"
+          },
+          "uuid": {
+            "description": "UUID to identify this PK regardless of the password",
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "description": "Key version",
+            "type": "integer",
+            "format": "uint16",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "created_at",
+          "name",
+          "uuid",
+          "version"
+        ]
+      },
+      "RttConfig": {
+        "description": "Configuration for RTT logging. (Placeholder — fields TBD.)",
+        "type": "object",
+        "additionalProperties": false
+      },
+      "SerialConfig": {
+        "description": "Configuration for serial/UART logging. (Placeholder — fields TBD.)",
+        "type": "object",
+        "additionalProperties": false
+      },
+      "UpdateBoardArgs": {
+        "description": "Arguments for updating a board",
+        "type": "object",
+        "properties": {
+          "manufacturer_id": {
+            "description": "Manufacturer ID",
+            "type": "integer",
+            "format": "int64"
+          },
+          "mcu_id": {
+            "description": "MCU ID",
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "description": "Board name",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "manufacturer_id",
+          "mcu_id",
+          "name"
+        ]
+      },
+      "UpdateDeviceArgs": {
+        "description": "Arguments for updating a device",
+        "type": "object",
+        "properties": {
+          "board_id": {
+            "description": "New board ID",
+            "type": "integer",
+            "format": "int64"
+          },
+          "enabled": {
+            "description": "Whether the device is enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "board_id",
+          "enabled"
+        ]
+      },
+      "UpdateEdgeServerArgs": {
+        "description": "Arguments for updating an edge server",
+        "type": "object",
+        "properties": {
+          "description": {
+            "description": "Description",
+            "type": "string",
+            "maxLength": 500
+          },
+          "location": {
+            "description": "Physical location",
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "description",
+          "location"
+        ]
+      },
+      "UpdateManufacturerArgs": {
+        "description": "Arguments for updating a manufacturer",
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "Manufacturer name",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateMcuArgs": {
+        "description": "Arguments for updating an MCU",
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "MCU name",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateUserArgs": {
+        "description": "Arguments for updating a user",
+        "type": "object",
+        "properties": {
+          "upload_quota_count": {
+            "description": "New upload quota",
+            "type": "integer",
+            "format": "uint16",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "upload_quota_count"
+        ]
+      },
+      "UploadLimits": {
+        "description": "Upload size limits for the system",
+        "type": "object",
+        "properties": {
+          "max_chunk_size": {
+            "description": "Maximum size for a single chunk in bytes",
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          },
+          "max_file_size": {
+            "description": "Maximum total file size in bytes",
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "max_chunk_size",
+          "max_file_size"
+        ]
+      },
+      "UploadQuota": {
+        "description": "Upload quota information for a user",
+        "type": "object",
+        "properties": {
+          "active_uploads": {
+            "description": "Current number of active uploads",
+            "type": "integer",
+            "format": "uint16",
+            "minimum": 0
+          },
+          "quota_limit": {
+            "description": "Maximum number of concurrent uploads allowed",
+            "type": "integer",
+            "format": "uint16",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "active_uploads",
+          "quota_limit"
+        ]
+      },
+      "UserData": {
+        "description": "Wrapper struct for the user data",
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "Database primary key",
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "JobSortColumn": {
+        "description": "Sortable columns for [`Job::get_page_with_count`].",
+        "oneOf": [
+          {
+            "description": "Sort by submission timestamp",
+            "type": "string",
+            "enum": [
+              "submitted_at"
+            ]
+          },
+          {
+            "description": "Sort by job start timestamp",
+            "type": "string",
+            "enum": [
+              "started_at"
+            ]
+          },
+          {
+            "description": "Sort by job finished timestamp",
+            "type": "string",
+            "enum": [
+              "finished_at"
+            ]
+          },
+          {
+            "description": "Sort by job status",
+            "type": "string",
+            "enum": [
+              "status"
+            ]
+          },
+          {
+            "description": "Sort by board name",
+            "type": "string",
+            "enum": [
+              "board_name"
+            ]
+          }
+        ]
+      },
+      "SortDirection": {
+        "description": "Sort direction for paginated list queries.",
+        "oneOf": [
+          {
+            "description": "Ascending order (smallest first).",
+            "type": "string",
+            "enum": [
+              "asc"
+            ]
+          },
+          {
+            "description": "Descending order (largest first).",
+            "type": "string",
+            "enum": [
+              "desc"
+            ]
+          }
+        ]
+      }
+    },
+    "responses": {
+      "Error": {
+        "description": "Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "admin"
+    }
+  ]
+}

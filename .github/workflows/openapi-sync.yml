@@ -1,0 +1,85 @@
+name: openapi-sync
+
+# Triggered by onmcu/software's release-published.yml whenever a new
+# version tag publishes a release with openapi.json attached. Pulls the
+# spec from the release and opens a PR bumping openapi/openapi.json here.
+#
+# Requires repo secret SOFTWARE_RELEASES_RO: a fine-grained PAT scoped
+# to onmcu/software with Contents: Read (which covers release downloads).
+
+on:
+  repository_dispatch:
+    types: [openapi-updated]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Source release tag to pull openapi.json from (e.g. v0.2.0)"
+        required: true
+        type: string
+      source_repo:
+        description: "Source repository"
+        required: false
+        type: string
+        default: "onmcu/software"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ github.event.client_payload.version || inputs.version }}
+      SOURCE_REPO: ${{ github.event.client_payload.source_repo || inputs.source_repo }}
+      RELEASE_URL: ${{ github.event.client_payload.release_url }}
+    steps:
+      - uses: actions/checkout@v6
+
+      # Defense-in-depth: VERSION flows from a `repository_dispatch`
+      # client_payload (or a `workflow_dispatch` input) straight into
+      # `gh release download "$VERSION"`. The dispatching repo is trusted
+      # today, but a malformed or hostile value (e.g. shell metacharacters,
+      # path traversal) could surprise us if the trust boundary ever
+      # weakens. Reject anything that isn't a SemVer-shaped tag up front.
+      - name: Validate VERSION
+        run: |
+          set -euo pipefail
+          if ! [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.-]+)?$ ]]; then
+            echo "::error::VERSION '$VERSION' is not a valid SemVer tag (expected vMAJOR.MINOR.PATCH[-pre])"
+            exit 1
+          fi
+
+      - name: Download openapi.json from source release
+        env:
+          GH_TOKEN: ${{ secrets.SOFTWARE_RELEASES_RO }}
+        run: |
+          set -euo pipefail
+          gh release download "$VERSION" \
+            --repo "$SOURCE_REPO" \
+            --pattern openapi.json \
+            --output openapi/openapi.json \
+            --clobber
+
+      # peter-evans/create-pull-request no-ops when the working tree is
+      # clean, so an explicit "did anything change" gate isn't needed.
+      - name: Open sync PR
+        uses: peter-evans/create-pull-request@v8
+        with:
+          branch: openapi-sync/${{ env.VERSION }}
+          delete-branch: true
+          commit-message: "chore(openapi): sync to ${{ env.VERSION }}"
+          title: "chore(openapi): sync to ${{ env.VERSION }}"
+          body: |
+            Automated sync triggered by `${{ env.SOURCE_REPO }}` release
+            [`${{ env.VERSION }}`](${{ env.RELEASE_URL }}).
+
+            **Reviewer checklist**
+            - [ ] Read the `openapi.json` diff carefully — pay attention to
+              changes in request/response types the CLI uses directly.
+            - [ ] Decide whether the API delta is patch / minor / major and
+              bump `Cargo.toml` `version` accordingly **in this PR** before
+              merging.
+            - [ ] Verify CI is green — `build.rs` regenerates the API
+              client from the new spec, so type errors will surface there.
+          labels: openapi-sync
