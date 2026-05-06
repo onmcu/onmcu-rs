@@ -48,13 +48,13 @@ uuid = { version = "1.23.1", features = ["serde"] }
 
 keyring-core = { version = "1.0.0" }
 
-[target.'cfg(windows)'.dependencies]
+[target.'cfg(target_os = "windows")'.dependencies]
 windows-native-keyring-store = "1.0.0"
 
-[target.'cfg(darwin)'.dependencies]
+[target.'cfg(target_os = "macos")'.dependencies]
 apple-native-keyring-store = "1.0.0"
 
-[target.'cfg(unix)'.dependencies]
+[target.'cfg(target_os = "linux")'.dependencies]
 linux-keyutils-keyring-store = "1.0.0"
 
 [build-dependencies]
