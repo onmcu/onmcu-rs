@@ -1,0 +1,19 @@
+.github/workflows/publish-crates.yml
+  s_9aa149ca46fe08::t_dcd22b218a3f96 20-23
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "1bdb730dfed96d74693a4e0a09a16334f8381134",
+  "prompts": {},
+  "sessions": {
+    "s_9aa149ca46fe08": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e0cb0bb2-3541-422c-ae43-704a040f929e",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "JuliDi <julian@systemscape.de>"
+    }
+  }
+}
