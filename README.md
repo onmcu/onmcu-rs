@@ -51,7 +51,7 @@ Get your API key at <https://app.onmcu.com/settings>.
 
 ### Configuration
 
-By default the CLI talks to `http://localhost:8020`. To point it at a
+By default the CLI talks to `https://ctrl1.onmcu.com`. To point it at a
 different controller, supply a TOML config file via `--config` or
 `ONMCU_CLI_CONFIG_PATH`:
 
