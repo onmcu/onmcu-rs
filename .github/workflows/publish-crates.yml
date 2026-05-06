@@ -17,6 +17,10 @@ permissions:
 
 jobs:
   publish:
+    # Skip prerelease tags (v*-rc.*, v*-prerelease.*, v*-alpha.*, ...).
+    # crates.io versions are append-only and only yankable, so a prerelease
+    # tag cut for testing must not burn a permanent crates.io version.
+    if: ${{ github.event_name == 'workflow_dispatch' || !github.event.release.prerelease }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
