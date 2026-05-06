@@ -1,5 +1,5 @@
 use anyhow::{Context, Result, anyhow, bail};
-use keyring::{Entry, Error as KeyringError};
+use keyring_core::{Entry, Error as KeyringError};
 use std::io::{self, Write};
 use tracing::info;
 

@@ -24,13 +24,6 @@ chrono = { version = "0.4.44", default-features = false, features = [
 clap = { version = "4.6.1", features = ["cargo", "derive", "env"] }
 futures = "0.3.32"
 indicatif = "0.18.4"
-keyring = { version = "3.6.3", features = [
-    "apple-native",
-    "windows-native",
-    "sync-secret-service",
-    "crypto-rust",
-    "vendored",
-] }
 progenitor-client = "0.14.0"
 rand = "0.10.1"
 reqwest = { version = "0.13.3", default-features = false, features = [
@@ -52,6 +45,17 @@ tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["json", "ansi"] }
 url = { version = "2.5.8", features = ["serde"] }
 uuid = { version = "1.23.1", features = ["serde"] }
+
+keyring-core = { version = "1.0.0" }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows-native-keyring-store = "1.0.0"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+apple-native-keyring-store = { version = "1.0.0", features = ["keychain"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+linux-keyutils-keyring-store = "1.0.0"
 
 [build-dependencies]
 prettyplease = "0.2.37"
