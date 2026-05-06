@@ -2,7 +2,7 @@
 use linux_keyutils_keyring_store::Store;
 
 #[cfg(target_os = "macos")]
-use apple_native_keyring_store::Store;
+use apple_native_keyring_store::keychain::Store;
 
 #[cfg(target_os = "windows")]
 use windows_native_keyring_store::Store;
