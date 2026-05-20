@@ -1125,7 +1125,8 @@
         "tags": [
           "admin"
         ],
-        "summary": "List all users",
+        "summary": "List all users. Identity is sourced from the OIDC provider;",
+        "description": "`linkage_broken: true` means the linked OIDC account could not be resolved.",
         "operationId": "list_users",
         "parameters": [
           {
@@ -1175,11 +1176,67 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Array_of_AdminUser",
+                  "title": "Array_of_AdminUserInfo",
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/AdminUser"
+                    "$ref": "#/components/schemas/AdminUserInfo"
                   }
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Create a new user. The `mode` discriminator selects between provisioning",
+        "description": "a new OIDC account (`provision`) or linking to an existing one (`link`).",
+        "operationId": "create_user",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "successful creation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserData"
                 }
               }
             }
@@ -1198,7 +1255,8 @@
         "tags": [
           "admin"
         ],
-        "summary": "Update user settings (quota)",
+        "summary": "Update onmcu-local user fields. Currently just the upload quota -",
+        "description": "identity (name/email/address/phone) lives in the OIDC provider and is edited there.",
         "operationId": "update_user",
         "parameters": [
           {
@@ -1241,19 +1299,118 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "title": "Null",
-                  "type": "string",
-                  "enum": [
-                    null
-                  ]
-                }
+          "204": {
+            "description": "resource updated"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Hard-delete a user along with all their API keys and jobs.",
+        "description": "The OIDC account (if linked via `oidc_sub`) is **not** affected - admins must remove it from OIDC-account separately if desired.",
+        "operationId": "delete_user",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Resource ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "successful deletion"
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/user/{id}/relink": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Change the OIDC subject linked to a user. The new subject is verified",
+        "description": "against the OIDC provider before being persisted.",
+        "operationId": "relink_user",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "description": "Resource ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RelinkArgs"
               }
             }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "resource updated"
           },
           "4XX": {
             "$ref": "#/components/responses/Error"
@@ -1821,6 +1978,42 @@
         }
       }
     },
+    "/register": {
+      "post": {
+        "summary": "Register a new user via the webapp's self-service flow.",
+        "description": "The body is a [`ProvisionArgs`] JSON payload. The request must carry `x-registration-timestamp` (Unix seconds) and `x-registration-signature` (hex-encoded HMAC-SHA256 of `{timestamp}.{body}`) headers; the controller's `[app] registration_secret` must match the secret used to sign.\n\nReturns 404 if self-service registration is disabled by config.",
+        "operationId": "register_user",
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "successful creation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserData"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
     "/upload-limits": {
       "get": {
         "summary": "Get upload size limits for job files",
@@ -1916,59 +2109,6 @@
         "responses": {
           "200": {
             "description": "successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserData"
-                }
-              }
-            }
-          },
-          "4XX": {
-            "$ref": "#/components/responses/Error"
-          },
-          "5XX": {
-            "$ref": "#/components/responses/Error"
-          }
-        }
-      },
-      "post": {
-        "summary": "Create a new user (called by webapp during registration)",
-        "description": "Requires admin privileges.",
-        "operationId": "create_user",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "Authorization",
-            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-API-Key",
-            "description": "API Key as generated in the webapp.",
-            "schema": {
-              "type": "string",
-              "minLength": 10,
-              "maxLength": 100
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateUserArgs"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "successful creation",
             "content": {
               "application/json": {
                 "schema": {
@@ -2483,21 +2623,16 @@
           "name"
         ]
       },
-      "AdminUser": {
-        "description": "User info for admin view",
+      "AdminUserInfo": {
+        "description": "User info as returned to an admin. Identity fields (name, email, address, phone) come from the OIDC provider; everything else is local. `linkage_broken` is set when the local row's OIDC subject no longer resolves in the OIDC provider - the admin should either relink the row or delete it.",
         "type": "object",
         "properties": {
-          "address": {
-            "nullable": true,
-            "description": "Address",
-            "type": "string"
-          },
           "email": {
-            "description": "Email",
+            "description": "Email address",
             "type": "string"
           },
           "first_name": {
-            "description": "First name",
+            "description": "First name (empty when `linkage_broken`)",
             "type": "string"
           },
           "id": {
@@ -2506,12 +2641,15 @@
             "format": "int64"
           },
           "last_name": {
-            "description": "Last name",
+            "description": "Last name (empty when `linkage_broken`)",
             "type": "string"
           },
-          "phone": {
-            "nullable": true,
-            "description": "Phone",
+          "linkage_broken": {
+            "description": "True when the OIDC account this row references could not be resolved.",
+            "type": "boolean"
+          },
+          "oidc_sub": {
+            "description": "OIDC subject linking the user to their OIDC account",
             "type": "string"
           },
           "upload_quota_count": {
@@ -2531,6 +2669,8 @@
           "first_name",
           "id",
           "last_name",
+          "linkage_broken",
+          "oidc_sub",
           "upload_quota_count",
           "uuid"
         ]
@@ -2654,52 +2794,118 @@
           "name"
         ]
       },
-      "CreateUserArgs": {
-        "description": "Arguments for creating a new user",
-        "type": "object",
-        "properties": {
-          "city": {
-            "description": "City of the user's address",
-            "type": "string"
+      "CreateUserBody": {
+        "description": "Body for `POST /admin/user`. The `mode` discriminator selects between:\n\n- `\"provision\"`: create a new account from scratch. - `\"link\"`: attach to an account that already exists.",
+        "oneOf": [
+          {
+            "description": "Create a new account and link it.",
+            "type": "object",
+            "properties": {
+              "city": {
+                "nullable": true,
+                "description": "City (optional)",
+                "default": null,
+                "type": "string",
+                "maxLength": 100
+              },
+              "country": {
+                "nullable": true,
+                "description": "Country (optional)",
+                "default": null,
+                "type": "string",
+                "maxLength": 100
+              },
+              "email": {
+                "description": "Email address",
+                "type": "string",
+                "format": "email",
+                "maxLength": 254
+              },
+              "first_name": {
+                "description": "First name",
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "last_name": {
+                "description": "Last name",
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "provision"
+                ]
+              },
+              "phone": {
+                "nullable": true,
+                "description": "Phone number (optional)",
+                "default": null,
+                "type": "string",
+                "maxLength": 30
+              },
+              "street_address": {
+                "nullable": true,
+                "description": "Street address (optional)",
+                "default": null,
+                "type": "string",
+                "maxLength": 200
+              },
+              "upload_quota_count": {
+                "nullable": true,
+                "description": "Upload quota (default: 10)",
+                "default": null,
+                "type": "integer",
+                "format": "uint16",
+                "minimum": 0
+              },
+              "zip_code": {
+                "nullable": true,
+                "description": "ZIP / postal code (optional)",
+                "default": null,
+                "type": "string",
+                "maxLength": 20
+              }
+            },
+            "required": [
+              "email",
+              "first_name",
+              "last_name",
+              "mode"
+            ]
           },
-          "country": {
-            "description": "Country of the user's address",
-            "type": "string"
-          },
-          "email": {
-            "description": "Email address of the user",
-            "type": "string"
-          },
-          "first_name": {
-            "description": "First name of the user",
-            "type": "string"
-          },
-          "last_name": {
-            "description": "Last name of the user",
-            "type": "string"
-          },
-          "phone": {
-            "description": "Phone number of the user",
-            "type": "string"
-          },
-          "street_address": {
-            "description": "Street address of the user",
-            "type": "string"
-          },
-          "zip_code": {
-            "description": "Zip code of the user's address",
-            "type": "string"
+          {
+            "description": "Link to an account that already exists.",
+            "type": "object",
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "link"
+                ]
+              },
+              "oidc_sub": {
+                "description": "OIDC subject of the existing account.",
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "upload_quota_count": {
+                "nullable": true,
+                "description": "Upload quota (default: 10)",
+                "default": null,
+                "type": "integer",
+                "format": "uint16",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "mode",
+              "oidc_sub"
+            ]
           }
-        },
-        "required": [
-          "city",
-          "country",
-          "email",
-          "first_name",
-          "last_name",
-          "phone",
-          "street_address",
-          "zip_code"
         ]
       },
       "Error": {
@@ -3231,6 +3437,21 @@
           "version"
         ]
       },
+      "RelinkArgs": {
+        "description": "Body for `POST /admin/user/{id}/relink`.",
+        "type": "object",
+        "properties": {
+          "oidc_sub": {
+            "description": "New OIDC subject. Must reference an existing OIDC account.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "oidc_sub"
+        ]
+      },
       "RttConfig": {
         "description": "Configuration for RTT logging. (Placeholder — fields TBD.)",
         "type": "object",
@@ -3338,11 +3559,11 @@
         ]
       },
       "UpdateUserArgs": {
-        "description": "Arguments for updating a user",
+        "description": "Body for `PUT /admin/user/{id}`. Onmcu-local fields only - identity is edited in the OIDC provider.",
         "type": "object",
         "properties": {
           "upload_quota_count": {
-            "description": "New upload quota",
+            "description": "New upload quota.",
             "type": "integer",
             "format": "uint16",
             "minimum": 0
