@@ -1,15 +1,17 @@
 name: publish-crates
 
-# Runs after a GitHub Release is published (which `release.yml` from
-# cargo-dist does for every v* tag). Publishes the `onmcu` crate to
-# crates.io.
+# Runs after cargo-dist's `release.yml` finishes successfully for a tag
+# push. We chain via `workflow_run` because cargo-dist creates the GitHub
+# Release using the default GITHUB_TOKEN, and events fired by GITHUB_TOKEN
+# do not trigger downstream `release: published` workflows.
 #
 # Requires repo secret CARGO_REGISTRY_TOKEN: a crates.io API token with
 # publish scope on the `onmcu` crate.
 
 on:
-  release:
-    types: [published]
+  workflow_run:
+    workflows: ["Release"]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -17,18 +19,27 @@ permissions:
 
 jobs:
   publish:
-    # Skip prerelease tags (v*-rc.*, v*-prerelease.*, v*-alpha.*, ...).
-    # crates.io versions are append-only and only yankable, so a prerelease
-    # tag cut for testing must not burn a permanent crates.io version.
-    if: ${{ github.event_name == 'workflow_dispatch' || !github.event.release.prerelease }}
+    # For workflow_run: only run when the upstream Release workflow succeeded
+    # and was triggered by a tag push (release.yml also runs on PRs). Skip
+    # prerelease tags (anything with a `-` suffix, e.g. v0.1.0-rc.1) — crates.io
+    # versions are append-only and only yankable, so a prerelease tag cut for
+    # testing must not burn a permanent crates.io version.
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch' ||
+          (github.event.workflow_run.conclusion == 'success' &&
+           github.event.workflow_run.event == 'push' &&
+           startsWith(github.event.workflow_run.head_branch, 'v') &&
+           !contains(github.event.workflow_run.head_branch, '-')) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
       - uses: dtolnay/rust-toolchain@stable
       - name: Verify Cargo.toml version matches release tag
-        if: github.event_name == 'release'
+        if: github.event_name == 'workflow_run'
         env:
-          TAG: ${{ github.event.release.tag_name }}
+          TAG: ${{ github.event.workflow_run.head_branch }}
         run: |
           set -euo pipefail
           CARGO_VERSION=$(cargo metadata --format-version 1 --no-deps \
