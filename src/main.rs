@@ -1,5 +1,5 @@
 #[cfg(target_os = "linux")]
-use linux_keyutils_keyring_store::Store;
+use dbus_secret_service_keyring_store::Store;
 
 #[cfg(target_os = "macos")]
 use apple_native_keyring_store::keychain::Store;
