@@ -49,6 +49,20 @@ onmcu run --board NUCLEO-H755ZI-Q --file ./target/thumbv7em-none-eabihf/release/
 
 Get your API key at <https://app.onmcu.com/settings>.
 
+### Linux keyring requirement
+
+`onmcu login` stores your API key in the OS keyring. On Linux this uses the
+[Secret Service](https://specifications.freedesktop.org/secret-service-spec/)
+API, so a running D-Bus session **and** a Secret Service provider must be
+available at runtime — e.g. GNOME Keyring, KWallet, or KeePassXC. On a typical
+desktop one is already running; on a headless server you may need to start one
+(for example `gnome-keyring-daemon`) for `login` and authenticated commands to
+work.
+
+No system packages are required: `libdbus` is statically compiled into the
+binary (via the `vendored` feature), so neither the prebuilt binaries nor a
+`cargo install` build depend on `libdbus-1-dev`/`pkg-config`.
+
 ### Configuration
 
 By default the CLI talks to `https://ctrl1.onmcu.com`. To point it at a
@@ -74,6 +88,10 @@ cargo build
 cargo test
 cargo run -- --help
 ```
+
+On Linux the build compiles a vendored copy of `libdbus` from source, so a C
+compiler (e.g. `gcc` or `clang`) must be available. No `libdbus-1-dev` or
+`pkg-config` is needed.
 
 ## License
 

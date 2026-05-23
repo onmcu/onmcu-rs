@@ -1,12 +1,3 @@
-#[cfg(target_os = "linux")]
-use dbus_secret_service_keyring_store::Store;
-
-#[cfg(target_os = "macos")]
-use apple_native_keyring_store::keychain::Store;
-
-#[cfg(target_os = "windows")]
-use windows_native_keyring_store::Store;
-
 use tracing_subscriber::FmtSubscriber;
 
 use onmcu::*;
@@ -30,12 +21,13 @@ async fn main() -> anyhow::Result<()> {
         .finish();
     tracing::subscriber::set_global_default(sub)?;
 
-    // Set keyutils backend as the default store
-    keyring_core::set_default_store(Store::new().unwrap());
+    // Install the OS keyring as the default store. Non-fatal: commands that need
+    // it report a clear error later; ONMCU_API_KEY works without it.
+    keyring::init_default_store();
 
     let res = cli.dispatch().await;
 
-    keyring_core::unset_default_store();
+    keyring::shutdown();
 
     res
 }

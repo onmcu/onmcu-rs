@@ -57,6 +57,7 @@ apple-native-keyring-store = { version = "1.0.0", features = ["keychain"] }
 [target.'cfg(target_os = "linux")'.dependencies]
 dbus-secret-service-keyring-store = { version = "1.0.0", features = [
     "crypto-rust",
+    "vendored",
 ] }
 
 [build-dependencies]
