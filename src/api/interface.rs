@@ -1,7 +1,7 @@
 use secrecy::ExposeSecret as _;
 
-use crate::api::AuthenticatedClient;
 use crate::api::generated::types::BoardInfo;
+use crate::api::{ApiError, AuthenticatedClient};
 
 pub fn is_board_supported<'a>(
     board_name: &str,
@@ -25,7 +25,8 @@ pub async fn fetch_all_boards(client: &AuthenticatedClient) -> anyhow::Result<Ve
             .offset(offset)
             .x_api_key(client.api_key.expose_secret())
             .send()
-            .await?;
+            .await
+            .map_err(ApiError::from)?;
         let page = response.into_inner();
         let received = page.items.len();
         all_boards.extend(page.items);

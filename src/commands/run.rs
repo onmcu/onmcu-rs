@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context as _, Result};
 use futures::{SinkExt, TryStreamExt as _};
 use secrecy::ExposeSecret;
 use std::{path::PathBuf, time::Duration};
@@ -12,8 +12,8 @@ use tokio_tungstenite::{
 };
 use tracing::{debug, error, info};
 
-use crate::api::get_authenticated_client;
 use crate::api::interface::{fetch_all_boards, is_board_supported};
+use crate::api::{ApiError, get_authenticated_client};
 use crate::upload::UploadConfig;
 use crate::upload::submit_job;
 
@@ -26,7 +26,7 @@ pub async fn handle_run(
     wait_timeout: u64,
 ) -> Result<()> {
     // Create authenticated client once
-    let client = get_authenticated_client(&cfg.server, api_key_from_env)?;
+    let client = get_authenticated_client(&cfg.server, api_key_from_env).await?;
 
     info!("Getting list of boards...");
     let board_list = fetch_all_boards(&client).await?;
@@ -102,7 +102,8 @@ pub async fn handle_run(
                 .x_api_key(client.api_key.expose_secret())
                 .send()
                 .await
-                .map_err(|e| anyhow::anyhow!("Failed to get job status: {e}"))?;
+                .map_err(ApiError::from)
+                .context("Failed to get job status")?;
 
             match job.into_inner().status {
                 crate::api::generated::types::JobStatusView::Running => {
@@ -132,7 +133,8 @@ pub async fn handle_run(
         .x_api_key(client.api_key.expose_secret())
         .send()
         .await
-        .map_err(|e| anyhow::anyhow!("Failed to connect to log stream: {e}"))?;
+        .map_err(ApiError::from)
+        .context("Failed to connect to log stream")?;
 
     // Turns the response into a WebSocket stream.
     let mut websocket =
