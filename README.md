@@ -49,6 +49,18 @@ onmcu run --board NUCLEO-H755ZI-Q --file ./target/thumbv7em-none-eabihf/release/
 
 Get your API key at <https://app.onmcu.com/settings>.
 
+### Linux keyring requirement
+
+`onmcu login` stores your API key in the OS keyring. On Linux this uses the
+[Secret Service](https://specifications.freedesktop.org/secret-service-spec/)
+API, so a running D-Bus session **and** a Secret Service provider must be
+available at runtime — e.g. GNOME Keyring, KWallet, or KeePassXC. On a typical
+desktop one is already running; on a headless server you may need to start one
+(for example `gnome-keyring-daemon`) for `login` and authenticated commands to
+work. No keyring is required when reading the API key from the environment, by
+passing in the `--api-key-from-env` CLI option and storing the key in an env 
+variable named `ONMCU_API_KEY`.
+
 ### Configuration
 
 By default the CLI talks to `https://ctrl1.onmcu.com`. To point it at a
@@ -73,7 +85,6 @@ controller via the `openapi-sync` workflow.
 cargo build
 cargo test
 cargo run -- --help
-```
 
 ## License
 

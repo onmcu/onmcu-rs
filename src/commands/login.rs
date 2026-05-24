@@ -1,21 +1,21 @@
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{Context, Result, bail};
 use keyring_core::{Entry, Error as KeyringError};
 use std::io::{self, Write};
 use tracing::info;
 
+use crate::keyring;
+
 /// `onmcu login [--relogin]`
 pub async fn handle_login(relogin: bool) -> Result<()> {
-    let entry = Entry::new("onmcu-cli", "api_key")?;
+    let entry = Entry::new("onmcu-cli", "api_key").map_err(keyring::explain)?;
     match entry.get_password() {
         Ok(_) if !relogin => {
             eprintln!("Already logged in. To overwrite, run `onmcu login --relogin`.");
             return Ok(());
         }
         Ok(_) | Err(KeyringError::NoEntry) => { /* fall through to prompt */ }
-        Err(e) => {
-            // e.g. no backend available, permission denied, etc.
-            return Err(anyhow!("Could not access keyring: {}", e));
-        }
+        // e.g. no backend available, permission denied, etc.
+        Err(e) => return Err(keyring::explain(e)),
     }
     // Prompt for new API key
     print!("Enter your API key, it can be retrieved at https://app.onmcu.com/settings: ");
