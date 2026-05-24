@@ -57,11 +57,9 @@ API, so a running D-Bus session **and** a Secret Service provider must be
 available at runtime — e.g. GNOME Keyring, KWallet, or KeePassXC. On a typical
 desktop one is already running; on a headless server you may need to start one
 (for example `gnome-keyring-daemon`) for `login` and authenticated commands to
-work.
-
-No system packages are required: `libdbus` is statically compiled into the
-binary (via the `vendored` feature), so neither the prebuilt binaries nor a
-`cargo install` build depend on `libdbus-1-dev`/`pkg-config`.
+work. No keyring is required when reading the API key from the environment, by
+passing in the `--api-key-from-env` CLI option and storing the key in an env 
+variable named `ONMCU_API_KEY`.
 
 ### Configuration
 
@@ -87,11 +85,6 @@ controller via the `openapi-sync` workflow.
 cargo build
 cargo test
 cargo run -- --help
-```
-
-On Linux the build compiles a vendored copy of `libdbus` from source, so a C
-compiler (e.g. `gcc` or `clang`) must be available. No `libdbus-1-dev` or
-`pkg-config` is needed.
 
 ## License
 
