@@ -3,7 +3,7 @@ use secrecy::SecretString;
 use thiserror::Error;
 use url::Url;
 
-use crate::api::generated::{self, prelude::*};
+use crate::api::generated::prelude::*;
 
 #[derive(Error, Debug)]
 pub enum AuthError {
@@ -18,9 +18,6 @@ pub enum AuthError {
 
     #[error("Could not access keyring: {0}")]
     KeyringAccess(KeyringError),
-
-    #[error("Invalid API key value: {0}")]
-    InvalidApiKey(#[from] Box<generated::Error>),
 
     #[error("No API key found in env var ONMCU_API_KEY")]
     NoApiKeyInEnv(#[from] std::env::VarError),

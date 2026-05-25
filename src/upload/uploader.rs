@@ -15,7 +15,7 @@ use crate::{
     upload::{UploadConfig, UploadError},
 };
 
-use crate::api::AuthenticatedClient;
+use crate::api::{ApiError, AuthenticatedClient};
 
 /// Convert MiB to bytes
 const fn mib_to_bytes(mib: usize) -> usize {
@@ -37,7 +37,7 @@ pub async fn get_upload_limits(client: &AuthenticatedClient) -> Result<UploadLim
         .get_upload_limits()
         .send()
         .await
-        .map_err(|e| UploadError::Api(e.to_string()))?
+        .map_err(ApiError::from)?
         .into_inner();
 
     Ok(UploadLimits {
@@ -143,7 +143,7 @@ async fn initialize_job(
 
     let file_hash: [u8; 32] = file_hash
         .try_into()
-        .map_err(|_| UploadError::Api("file_hash must be exactly 32 bytes".into()))?;
+        .map_err(|_| UploadError::InvalidRequest("file_hash must be exactly 32 bytes".into()))?;
 
     // Hardcoded for now: the CLI only knows how to submit regular run
     // jobs. When a `cli debug` subcommand (or equivalent) lands, this
@@ -161,9 +161,9 @@ async fn initialize_job(
 
     let job = JobSubmit {
         account_id: None, // Optional, defaults to caller's personal account if omitted.
-        board_name: board
-            .try_into()
-            .map_err(|_| UploadError::Api("board_name must be 1-255 characters".into()))?,
+        board_name: board.try_into().map_err(|_| {
+            UploadError::InvalidRequest("board_name must be 1-255 characters".into())
+        })?,
         timeout_seconds,
         file_hash,
         job_type,
@@ -176,7 +176,7 @@ async fn initialize_job(
         .x_api_key(client.api_key.expose_secret())
         .send()
         .await
-        .map_err(|e| UploadError::Api(e.to_string()))?
+        .map_err(ApiError::from)?
         .into_inner() // UploadSession
         .id;
 
@@ -275,7 +275,7 @@ async fn finalize_upload(job_id: Uuid, client: &AuthenticatedClient) -> Result<(
         .id(job_id)
         .send()
         .await
-        .map_err(|e| UploadError::Api(e.to_string()))?
+        .map_err(ApiError::from)?
         .into_inner();
 
     println!("✅ Upload complete!");
@@ -333,7 +333,7 @@ async fn try_upload_job_chunk(
         .body(bytes)
         .send()
         .await
-        .map_err(|e| UploadError::Api(e.to_string()))?;
+        .map_err(ApiError::from)?;
 
     Ok(())
 }

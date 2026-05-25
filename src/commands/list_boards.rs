@@ -7,7 +7,7 @@ use crate::{
 /// Handle the `list-boards` command: get lists of available boards from server and print to stdout
 pub async fn handle_list_boards(cfg: UploadConfig, api_key_from_env: bool) -> anyhow::Result<()> {
     // Create authenticated client once
-    let client = get_authenticated_client(&cfg.server, api_key_from_env)?;
+    let client = get_authenticated_client(&cfg.server, api_key_from_env).await?;
 
     info!("Getting list of boards...");
     let board_list = fetch_all_boards(&client).await?;
