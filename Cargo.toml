@@ -26,7 +26,7 @@ futures = "0.3.32"
 indicatif = "0.18.4"
 progenitor-client = "0.14.0"
 rand = "0.10.1"
-reqwest = { version = "0.13.3", default-features = false, features = [
+reqwest = { version = "0.13.4", default-features = false, features = [
     "json",
     "rustls",
     "stream",
@@ -49,7 +49,7 @@ uuid = { version = "1.23.1", features = ["serde"] }
 keyring-core = { version = "1.0.0" }
 
 [target.'cfg(target_os = "windows")'.dependencies]
-windows-native-keyring-store = "1.0.0"
+windows-native-keyring-store = "1.1.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 apple-native-keyring-store = { version = "1.0.0", features = ["keychain"] }
