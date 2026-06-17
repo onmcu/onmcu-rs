@@ -110,9 +110,13 @@ pub async fn handle_run(
                     eprintln!(" started!");
                     break 'wait;
                 }
-                crate::api::generated::types::JobStatusView::Completed
-                | crate::api::generated::types::JobStatusView::Failed
-                | crate::api::generated::types::JobStatusView::Cancelled => {
+                crate::api::generated::types::JobStatusView::Completed => {
+                    eprintln!(" completed before log streaming could start");
+                    return Ok(());
+                }
+                crate::api::generated::types::JobStatusView::Failed
+                | crate::api::generated::types::JobStatusView::Cancelled
+                | crate::api::generated::types::JobStatusView::Timeout => {
                     eprintln!();
                     anyhow::bail!("Job finished before log streaming could start");
                 }
@@ -207,7 +211,8 @@ pub async fn handle_run(
         }
     }
 
-    // Fetch final job status so the user knows the outcome.
+    // Fetch final job status so the user knows the outcome and the process exit
+    // code reflects it: success only on `Completed`, error otherwise.
     // The DB update may lag behind the EndOfLogs sentinel, so poll briefly.
     eprint!("Waiting for final job status...");
     for _ in 0..5 {
@@ -222,7 +227,10 @@ pub async fn handle_run(
             let status = job.into_inner().status;
             if status != crate::api::generated::types::JobStatusView::Running {
                 eprintln!(" Status: {status}");
-                return Ok(());
+                if status == crate::api::generated::types::JobStatusView::Completed {
+                    return Ok(());
+                }
+                anyhow::bail!("Job finished with status: {status}");
             } else {
                 eprint!(".");
             }
@@ -231,5 +239,5 @@ pub async fn handle_run(
     }
     eprintln!("Job status: unknown (timed out waiting for final status)");
 
-    Ok(())
+    anyhow::bail!("Timed out waiting for final job status")
 }
