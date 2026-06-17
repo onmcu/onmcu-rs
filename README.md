@@ -68,7 +68,7 @@ different controller, supply a TOML config file via `--config` or
 `ONMCU_CLI_CONFIG_PATH`:
 
 ```toml
-server = "https://controller.onmcu.com"
+server = "https://ctrl1.onmcu.com"
 chunk_size = 5
 retries = 3
 timeout_seconds = 600
