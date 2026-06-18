@@ -1,0 +1,106 @@
+src/main.rs
+  s_076793534d8db0::t_eeef01a3468c3c 25
+  s_a4a9417b71dd78::t_a61d7204fea4aa 1-2,8,24,26-27,33,37-39,41-43
+  s_eac30d240daf5f::t_f43723dd4aab38 40
+src/api/mod.rs
+  s_a4a9417b71dd78::t_7f41c79f6cbe50 10-11,17-18
+  s_fa572036b5c267::t_86b19bd137aaf2 13
+tests/keyring_cli.rs
+  s_fa572036b5c267::t_7ba42200e6138b 11
+  s_fa572036b5c267::t_26c523aa1bec26 40-41
+src/api/error.rs
+  s_fa572036b5c267::t_86b19bd137aaf2 20,28,68,104
+  s_a4a9417b71dd78::t_1b32349833ffce 72,83
+  s_fa572036b5c267::t_48f22563bce5ff 3-7
+  s_fa572036b5c267::t_f9808c547631ed 51-65,84-88
+src/commands/run.rs
+  s_eac30d240daf5f::t_9b8024fcb047f0 172-182
+  s_a4a9417b71dd78::t_69722f743e5b4e 108,112,116-118
+  s_a4a9417b71dd78::t_8de0a406ae9685 48,53
+  s_fa572036b5c267::t_f9808c547631ed 94,105,137
+  s_a4a9417b71dd78::t_4f6ac3ca967e99 229,231-237,246
+  s_eac30d240daf5f::t_afe844707be69c 21-25
+  s_eac30d240daf5f::t_fbc7cbfe392715 219
+  s_076793534d8db0::t_eeef01a3468c3c 198-199
+  s_a4a9417b71dd78::t_2305b77ece0f9d 14,17,33
+src/upload/mod.rs
+  s_a4a9417b71dd78::t_f09b6d6d0088eb 5
+src/cli.rs
+  s_fa572036b5c267::t_86b19bd137aaf2 30
+  s_a4a9417b71dd78::t_3573a9d8bc0c6b 50-52
+  s_076793534d8db0::t_eeef01a3468c3c 86
+  s_a4a9417b71dd78::t_919e67c7700266 31-33
+  s_a4a9417b71dd78::t_c25c6ef1584793 29
+  s_a4a9417b71dd78::t_3feb7c1d468430 6
+src/api/types.rs
+  s_fa572036b5c267::t_f9808c547631ed 19,22
+  s_fa572036b5c267::t_0cfbd33a5e3ad0 10
+src/commands/login.rs
+  s_fa572036b5c267::t_7ba42200e6138b 13-15,22,31,58-59
+  s_a4a9417b71dd78::t_e4ea0f851d7cd4 3,6-12,17-21,23-30,32-33,36-37,44,48,66,68,73,79,83,87
+  s_076793534d8db0::t_e21e6497e2c727 16
+src/upload/uploader.rs
+  s_eac30d240daf5f::t_09cdf5c8ad9f86 198
+src/error.rs
+  s_eac30d240daf5f::t_b99d20abb0adbf 59,61,63-64,70-72,85-87,89-93
+  s_fa572036b5c267::t_7ba42200e6138b 31-33,54,58,60,62,74,88
+  s_a4a9417b71dd78::t_28525d8fe9ca91 2,5-9,13-15,34-35,38,45-53,55-57,65,67-68,83-84,94-95
+  s_a4a9417b71dd78::t_7082807cab8477 12,16-18
+  s_076793534d8db0::t_eeef01a3468c3c 1,4,66
+  s_076793534d8db0::t_e21e6497e2c727 3
+  s_fa572036b5c267::t_f9808c547631ed 36-37,39-44,77-78
+  s_a4a9417b71dd78::t_fc135e75b3151a 10-11,19-30
+  s_a4a9417b71dd78::t_a0b7464fa6c21a 69,73,75-76,79-82
+src/commands/list_boards.rs
+  s_a4a9417b71dd78::t_8de5af3fd5123a 4-5
+  s_a4a9417b71dd78::t_6ed69bd540d5eb 9
+src/api/interface.rs
+  s_a4a9417b71dd78::t_472abe390d8c89 16
+src/upload/config.rs
+  s_a4a9417b71dd78::t_c5c5ebcbb178bd 39-40,42-47,49-56,58-70
+  s_a4a9417b71dd78::t_5f6aeb7c177ed5 1-5,8
+  s_fa572036b5c267::t_48f22563bce5ff 41,48
+  s_076793534d8db0::t_e21e6497e2c727 57
+src/lib.rs
+  s_a4a9417b71dd78::t_922dbb94e58079 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "87e3fd3413a7ed02ce54871684e3e4b1bdd5de3c",
+  "prompts": {},
+  "sessions": {
+    "s_076793534d8db0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019edabd-53b8-7263-a472-dc3478b5502d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Joël Schulz-Andres <joel@systemscape.de>"
+    },
+    "s_a4a9417b71dd78": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7a639a05-9f71-4e01-a732-11e8002f0bf1",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Joël Schulz-Andres <joel@systemscape.de>"
+    },
+    "s_eac30d240daf5f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "294a1164-65bf-41e2-bf6d-cc61266bf7cc",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Joël Schulz-Andres <joel@systemscape.de>"
+    },
+    "s_fa572036b5c267": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019edae3-21c6-7b20-b426-dd45421dcff0",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Joël Schulz-Andres <joel@systemscape.de>"
+    }
+  }
+}
