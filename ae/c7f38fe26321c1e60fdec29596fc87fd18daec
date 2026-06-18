@@ -1,0 +1,14 @@
+Cargo.toml
+  h_266fe4f058ae1a 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "aec7f38fe26321c1e60fdec29596fc87fd18daec",
+  "prompts": {},
+  "humans": {
+    "h_266fe4f058ae1a": {
+      "author": "Joël Schulz-Andres <joel@systemscape.de>"
+    }
+  }
+}
