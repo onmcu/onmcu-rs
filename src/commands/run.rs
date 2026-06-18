@@ -1,4 +1,3 @@
-use anyhow::{Context as _, Result};
 use futures::{SinkExt, TryStreamExt as _};
 use secrecy::ExposeSecret;
 use std::{path::PathBuf, time::Duration};
@@ -12,10 +11,17 @@ use tokio_tungstenite::{
 };
 use tracing::{debug, error, info};
 
+use crate::api::generated::types::JobStatusView;
 use crate::api::interface::{fetch_all_boards, is_board_supported};
 use crate::api::{ApiError, get_authenticated_client};
+use crate::error::CliError;
 use crate::upload::UploadConfig;
 use crate::upload::submit_job;
+
+/// How many times to poll for the final job status after the log stream ends,
+/// at one-second intervals. The DB status can lag the end-of-logs sentinel, so
+/// allow a brief grace period before reporting the status as unknown.
+const FINAL_STATUS_POLL_ATTEMPTS: u32 = 10;
 
 /// Handle the `run` command: check board and delegate to upload
 pub async fn handle_run(
@@ -24,8 +30,7 @@ pub async fn handle_run(
     file_path: PathBuf,
     api_key_from_env: bool,
     wait_timeout: u64,
-) -> Result<()> {
-    // Create authenticated client once
+) -> Result<(), CliError> {
     let client = get_authenticated_client(&cfg.server, api_key_from_env).await?;
 
     info!("Getting list of boards...");
@@ -40,18 +45,12 @@ pub async fn handle_run(
             .iter()
             .for_each(|board| info!("  {}", board.board_mpn));
 
-        eprintln!("Error: No matching board found for {}", board);
-        eprintln!("Get supported boards using the `list-boards` command");
-        //eprintln!("See supported boards at: https://docs.onmcu.com/boards");
-        anyhow::bail!("No matching board")
+        return Err(CliError::BoardNotFound(board));
     }
 
     info!("Running upload for board: {}", board);
 
-    // Delegate to the existing upload logic
-    let job_id = submit_job(file_path, board, &cfg, &client)
-        .await
-        .map_err(|e| anyhow::anyhow!(e))?;
+    let job_id = submit_job(file_path, board, &cfg, &client).await?;
 
     info!("Submitted file for Job ID {job_id}");
 
@@ -92,7 +91,7 @@ pub async fn handle_run(
                 {
                     error!("Failed to cancel job: {e}");
                 }
-                anyhow::bail!("Cancelled — no device available");
+                return Err(CliError::NoDeviceAvailable);
             }
 
             let job = client
@@ -103,23 +102,20 @@ pub async fn handle_run(
                 .send()
                 .await
                 .map_err(ApiError::from)
-                .context("Failed to get job status")?;
+                .map_err(CliError::JobStatus)?;
 
             match job.into_inner().status {
-                crate::api::generated::types::JobStatusView::Running => {
+                JobStatusView::Running => {
                     eprintln!(" started!");
                     break 'wait;
                 }
-                crate::api::generated::types::JobStatusView::Completed => {
+                JobStatusView::Completed => {
                     eprintln!(" completed before log streaming could start");
                     return Ok(());
                 }
-                crate::api::generated::types::JobStatusView::Failed
-                | crate::api::generated::types::JobStatusView::Cancelled
-                | crate::api::generated::types::JobStatusView::Timeout => {
-                    eprintln!();
-                    anyhow::bail!("Job finished before log streaming could start");
-                }
+                JobStatusView::Failed => return Err(CliError::JobFailed),
+                JobStatusView::Cancelled => return Err(CliError::JobCancelled),
+                JobStatusView::Timeout => return Err(CliError::JobTimedOut),
                 _ => {
                     // Still pending/dispatched — wait and retry
                     eprint!(".");
@@ -138,7 +134,7 @@ pub async fn handle_run(
         .send()
         .await
         .map_err(ApiError::from)
-        .context("Failed to connect to log stream")?;
+        .map_err(CliError::LogStream)?;
 
     // Turns the response into a WebSocket stream.
     let mut websocket =
@@ -173,7 +169,17 @@ pub async fn handle_run(
             res = timeout(Duration::from_secs(30), websocket.try_next()) => {
                 match res {
                     Ok(message_result) => {
-                        match message_result? {
+                        // A stream error is not necessarily a job failure, so
+                        // stop reading logs and let the final-status poll decide
+                        // the outcome rather than failing outright here.
+                        let message = match message_result {
+                            Ok(message) => message,
+                            Err(e) => {
+                                error!(%e, "Log stream error; checking final job status");
+                                break;
+                            }
+                        };
+                        match message {
                             Some(Message::Text(text)) => {
                                 println!("received: {text}");
                             }
@@ -189,13 +195,8 @@ pub async fn handle_run(
                                 }
                                 break;
                             }
-                            Some(_) => {
-                                // Handle other message types if needed
-                            }
-                            None => {
-                                // WebSocket stream ended
-                                break;
-                            }
+                            Some(_) => {}
+                            None => break,
                         }
                     }
                     Err(_) => {
@@ -215,7 +216,7 @@ pub async fn handle_run(
     // code reflects it: success only on `Completed`, error otherwise.
     // The DB update may lag behind the EndOfLogs sentinel, so poll briefly.
     eprint!("Waiting for final job status...");
-    for _ in 0..5 {
+    for _ in 0..FINAL_STATUS_POLL_ATTEMPTS {
         if let Ok(job) = client
             .api()
             .get_job()
@@ -225,12 +226,15 @@ pub async fn handle_run(
             .await
         {
             let status = job.into_inner().status;
-            if status != crate::api::generated::types::JobStatusView::Running {
+            if status != JobStatusView::Running {
                 eprintln!(" Status: {status}");
-                if status == crate::api::generated::types::JobStatusView::Completed {
-                    return Ok(());
-                }
-                anyhow::bail!("Job finished with status: {status}");
+                return match status {
+                    JobStatusView::Completed => Ok(()),
+                    JobStatusView::Failed => Err(CliError::JobFailed),
+                    JobStatusView::Cancelled => Err(CliError::JobCancelled),
+                    JobStatusView::Timeout => Err(CliError::JobTimedOut),
+                    _ => Err(CliError::StatusUnknown),
+                };
             } else {
                 eprint!(".");
             }
@@ -239,5 +243,5 @@ pub async fn handle_run(
     }
     eprintln!("Job status: unknown (timed out waiting for final status)");
 
-    anyhow::bail!("Timed out waiting for final job status")
+    Err(CliError::StatusUnknown)
 }

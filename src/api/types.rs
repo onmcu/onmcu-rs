@@ -7,7 +7,7 @@ use crate::api::generated::prelude::*;
 
 #[derive(Error, Debug)]
 pub enum AuthError {
-    #[error("No API key found. Please run `onmcu login` to set one.")]
+    #[error("No API key found. Get one at https://app.onmcu.com/settings, then run `onmcu login`.")]
     NoApiKey,
 
     #[error("{}", crate::keyring::unavailable_hint())]
@@ -16,10 +16,10 @@ pub enum AuthError {
     #[error("{}", crate::keyring::locked_hint())]
     KeyringLocked(KeyringError),
 
-    #[error("Could not access keyring: {0}")]
+    #[error("Could not access the OS keyring: {0}")]
     KeyringAccess(KeyringError),
 
-    #[error("No API key found in env var ONMCU_API_KEY")]
+    #[error("--api-key-from-env was set, but ONMCU_API_KEY is missing from the environment.")]
     NoApiKeyInEnv(#[from] std::env::VarError),
 }
 

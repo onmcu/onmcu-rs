@@ -1,9 +1,9 @@
-use anyhow::Result;
 use clap::{Parser, Subcommand, crate_description, crate_name, crate_version};
 use std::path::PathBuf;
 
 use crate::{
     commands::{list_boards, login, run},
+    error::CliError,
     upload::UploadConfig,
 };
 
@@ -26,16 +26,11 @@ pub struct Cli {
 }
 
 impl Cli {
-    pub async fn dispatch(self) -> Result<()> {
-        // Get config from cli argument path or construct default
-        let mut cfg = if let Some(ref path) = self.config {
-            let config_contents: String = std::fs::read_to_string(path)
-                .unwrap_or_else(|e| panic!("Could not read config file at {:?}. Error: {e}", path));
-
-            toml::from_str(&config_contents)
-                .unwrap_or_else(|e| panic!("Failed to parse config file at {:?}. Error: {e}", path))
-        } else {
-            UploadConfig::default()
+    pub async fn dispatch(self) -> Result<(), CliError> {
+        // Get config from CLI argument path or construct default
+        let mut cfg = match self.config {
+            Some(ref path) => UploadConfig::from_file(path)?,
+            None => UploadConfig::default(),
         };
 
         match self.command {
@@ -52,7 +47,9 @@ impl Cli {
                 }
                 run::handle_run(cfg, board, file, api_key_from_env, wait_timeout).await
             }
-            Commands::Login { relogin } => login::handle_login(relogin).await,
+            Commands::Login { relogin } => {
+                login::handle_login(relogin).await.map_err(CliError::from)
+            }
             Commands::ListBoards { api_key_from_env } => {
                 list_boards::handle_list_boards(cfg, api_key_from_env).await
             }
@@ -86,6 +83,7 @@ pub enum Commands {
         #[arg(short, long)]
         relogin: bool,
     },
+    /// List the available boards
     ListBoards {
         /// Read API key from env var ONMCU_API_KEY
         #[arg(long)]

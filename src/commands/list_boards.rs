@@ -1,12 +1,12 @@
 use tracing::info;
 
 use crate::{
-    api::get_authenticated_client, api::interface::fetch_all_boards, upload::UploadConfig,
+    api::get_authenticated_client, api::interface::fetch_all_boards, error::CliError,
+    upload::UploadConfig,
 };
 
 /// Handle the `list-boards` command: get lists of available boards from server and print to stdout
-pub async fn handle_list_boards(cfg: UploadConfig, api_key_from_env: bool) -> anyhow::Result<()> {
-    // Create authenticated client once
+pub async fn handle_list_boards(cfg: UploadConfig, api_key_from_env: bool) -> Result<(), CliError> {
     let client = get_authenticated_client(&cfg.server, api_key_from_env).await?;
 
     info!("Getting list of boards...");

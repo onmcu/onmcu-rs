@@ -70,15 +70,3 @@ pub fn locked_hint() -> &'static str {
      Alternatively, set the ONMCU_API_KEY environment variable and pass \
      --api-key-from-env."
 }
-
-/// Turn a keyring error into an `anyhow::Error`: the matching hint when the
-/// backend is unavailable or locked, a plain message otherwise.
-pub fn explain(err: KeyringError) -> anyhow::Error {
-    if is_unavailable(&err) {
-        anyhow::anyhow!("{}", unavailable_hint())
-    } else if is_locked(&err) {
-        anyhow::anyhow!("{}", locked_hint())
-    } else {
-        anyhow::anyhow!("Could not access the OS keyring: {err}")
-    }
-}

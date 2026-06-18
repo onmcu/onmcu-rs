@@ -8,8 +8,7 @@
 use std::process::{Command, Stdio};
 
 /// Run the onmcu binary with the Secret Service made unreachable and no
-/// `ONMCU_API_KEY` in the environment. Returns combined stdout+stderr, since
-/// the CLI emits some errors via anyhow (stderr) and some via tracing (stdout).
+/// `ONMCU_API_KEY` in the environment. Returns combined stdout+stderr.
 fn onmcu_without_keyring(args: &[&str]) -> (bool, String) {
     let out = Command::new(env!("CARGO_BIN_EXE_onmcu"))
         .args(args)
@@ -38,7 +37,8 @@ fn login_reports_missing_keyring() {
     assert!(output.contains("ONMCU_API_KEY"), "output: {output}");
 }
 
-/// Commands that read the key from the keyring report the same hint.
+/// Commands that read the key from the keyring must explain how to proceed when
+/// no keyring backend is available.
 #[test]
 fn keyring_command_reports_missing_keyring() {
     let (ok, output) = onmcu_without_keyring(&["list-boards"]);
