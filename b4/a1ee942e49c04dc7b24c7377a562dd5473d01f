@@ -1,0 +1,44 @@
+src/cli.rs
+  s_409f617ed5016c::t_3826567ba84ea9 43-44,48-50
+  s_409f617ed5016c::t_79e74f5f58df5b 87-88,90-91
+  s_730b50642be9c0::t_c0a8523391aac5 47,89
+  s_730b50642be9c0::t_939e44e10166d7 46,86
+src/error.rs
+  s_409f617ed5016c::t_9fe703d14370fb 56-57,59-61
+  s_6577a1a5c94b2c::t_c819d50b0dad39 58
+  s_409f617ed5016c::t_bb39f4332e246f 89
+tests/trailing_args.rs
+  s_6577a1a5c94b2c::t_544dde80d5531e 6-135
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "b4a1ee942e49c04dc7b24c7377a562dd5473d01f",
+  "prompts": {},
+  "sessions": {
+    "s_409f617ed5016c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "834bf52a-5da7-4cb3-8701-f845509249be",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Joël Schulz-Andres <joel@systemscape.de>"
+    },
+    "s_6577a1a5c94b2c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ae313b34-475c-49d4-b44e-5f65883b45e6",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Joël Schulz-Andres <joel@systemscape.de>"
+    },
+    "s_730b50642be9c0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019edafc-4f2d-79d0-93f5-4d6e16f90680",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Joël Schulz-Andres <joel@systemscape.de>"
+    }
+  }
+}
