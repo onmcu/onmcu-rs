@@ -40,7 +40,14 @@ impl Cli {
                 api_key_from_env,
                 timeout,
                 wait_timeout,
+                ignore_trailing_args,
+                trailing_args,
             } => {
+                // Development tools may append test arguments to Cargo runner commands.
+                // Reject them unless the flag is set, so typos are still reported.
+                if !trailing_args.is_empty() && !ignore_trailing_args {
+                    return Err(CliError::UnexpectedArgs(trailing_args));
+                }
                 // Apply CLI argument timeout to config
                 if let Some(timeout) = timeout {
                     cfg.timeout_seconds = timeout;
@@ -76,6 +83,12 @@ pub enum Commands {
         /// How long to wait for a device to become available (seconds, default: 300)
         #[arg(long, default_value_t = 300)]
         wait_timeout: u64,
+        /// Ignore extra test arguments added by development tools
+        #[arg(long)]
+        ignore_trailing_args: bool,
+        /// Arguments left after parsing the run options
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true, hide = true)]
+        trailing_args: Vec<String>,
     },
     /// Store the API Key into the OS keyring
     Login {

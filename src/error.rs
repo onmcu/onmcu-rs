@@ -53,6 +53,12 @@ pub enum CliError {
 
     #[error("Timed out waiting for final job status")]
     StatusUnknown,
+
+    #[error(
+        "Unexpected arguments: {}\nIf a development tool added them, pass `--ignore-trailing-args` before the extra arguments to ignore them.",
+        .0.join(" ")
+    )]
+    UnexpectedArgs(Vec<String>),
 }
 
 /// Exit code for a missing or rejected authentication credential.
@@ -80,6 +86,7 @@ impl CliError {
             CliError::JobCancelled => 11,
             CliError::JobTimedOut => 12,
             CliError::StatusUnknown => 13,
+            CliError::UnexpectedArgs(_) => 2,
         };
         ExitCode::from(code)
     }
