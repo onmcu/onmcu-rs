@@ -88,4 +88,5 @@ cargo run -- --help
 ```
 
 ## License
+
 [MIT](LICENSE)
