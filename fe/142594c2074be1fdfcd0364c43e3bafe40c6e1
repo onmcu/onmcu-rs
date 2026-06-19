@@ -1,0 +1,14 @@
+src/commands/run.rs
+  h_266fe4f058ae1a 198-199
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.8",
+  "base_commit_sha": "fe142594c2074be1fdfcd0364c43e3bafe40c6e1",
+  "prompts": {},
+  "humans": {
+    "h_266fe4f058ae1a": {
+      "author": "Joël Schulz-Andres <joel@systemscape.de>"
+    }
+  }
+}
