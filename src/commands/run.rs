@@ -195,8 +195,8 @@ pub async fn handle_run(
                                 }
                                 break;
                             }
-                            Some(_) => {}
-                            None => break,
+                            Some(_) => {}   // Handle other message types if needed
+                            None => break,  // WebSocket stream ended
                         }
                     }
                     Err(_) => {
