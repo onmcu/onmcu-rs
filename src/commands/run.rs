@@ -19,7 +19,7 @@ use crate::upload::UploadConfig;
 use crate::upload::submit_job;
 
 /// How many times to poll for the final job status after the log stream ends,
-/// at one-second intervals. The DB status can lag the end-of-logs sentinel, so
+/// at one-second intervals. The job status can lag the end-of-logs marker, so
 /// allow a brief grace period before reporting the status as unknown.
 const FINAL_STATUS_POLL_ATTEMPTS: u32 = 10;
 
