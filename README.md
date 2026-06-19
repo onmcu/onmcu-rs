@@ -85,6 +85,7 @@ controller via the `openapi-sync` workflow.
 cargo build
 cargo test
 cargo run -- --help
+```
 
 ## License
 
