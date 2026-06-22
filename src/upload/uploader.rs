@@ -11,7 +11,7 @@ use tracing::{info, warn};
 use uuid::Uuid;
 
 use crate::{
-    api::generated::types::JobSubmit,
+    api::generated::types::{JobSubmit, LoggingConfig},
     upload::{UploadConfig, UploadError},
 };
 
@@ -131,6 +131,7 @@ async fn initialize_job(
     file_hash: Vec<u8>,
     timeout_seconds: u32,
     client: &AuthenticatedClient,
+    logging_config: LoggingConfig,
 ) -> Result<Uuid, UploadError> {
     // Validate timeout is within allowed range (59-86400 seconds)
     // This is already checked by clap, but we might offload this to a library,
@@ -150,15 +151,8 @@ async fn initialize_job(
     // should become `JobType::Debug` on that path.
     let job_type = crate::api::generated::types::JobType::Run;
 
-    // Hardcoded for now: RTT is the only log transport the edge
-    // server actually implements. When Serial/UART or multi-channel
-    // RTT support lands, expose a `--logging {rtt,serial}` flag (or
-    // similar) and map it to the matching `LoggingConfig` variant
-    // here.
-    let logging_config = crate::api::generated::types::LoggingConfig::Rtt(
-        crate::api::generated::types::RttConfig {},
-    );
-
+    // logging_config (RTT or serial) is selected on the command line and
+    // passed in by the caller.
     let job = JobSubmit {
         account_id: None, // Optional, defaults to caller's personal account if omitted.
         board_name: board.try_into().map_err(|_| {
@@ -166,6 +160,9 @@ async fn initialize_job(
         })?,
         timeout_seconds,
         file_hash,
+        // Default flash tool (probe-rs); the CLI does not select OpenOCD,
+        // which the server rejects anyway.
+        flash_tool: None,
         job_type,
         logging_config,
     };
@@ -288,6 +285,7 @@ pub async fn submit_job(
     board: String,
     cfg: &UploadConfig,
     client: &AuthenticatedClient,
+    logging_config: LoggingConfig,
 ) -> Result<Uuid, UploadError> {
     // 1. Prepare file: validate, hash, determine chunking strategy
     let mut prepared_file = prepare_file(&file_path, cfg, client).await?;
@@ -298,6 +296,7 @@ pub async fn submit_job(
         prepared_file.file_hash.clone(),
         cfg.timeout_seconds,
         client,
+        logging_config,
     )
     .await?;
 
