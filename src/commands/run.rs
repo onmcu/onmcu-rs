@@ -30,6 +30,7 @@ pub async fn handle_run(
     file_path: PathBuf,
     api_key_from_env: bool,
     wait_timeout: u64,
+    logging_config: crate::api::generated::types::LoggingConfig,
 ) -> Result<(), CliError> {
     let client = get_authenticated_client(&cfg.server, api_key_from_env).await?;
 
@@ -50,7 +51,7 @@ pub async fn handle_run(
 
     info!("Running upload for board: {}", board);
 
-    let job_id = submit_job(file_path, board, &cfg, &client).await?;
+    let job_id = submit_job(file_path, board, &cfg, &client, logging_config).await?;
 
     info!("Submitted file for Job ID {job_id}");
 

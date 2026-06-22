@@ -111,7 +111,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateBoardArgs"
+                "$ref": "#/components/schemas/BoardArgs"
               }
             }
           },
@@ -178,7 +178,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateBoardArgs"
+                "$ref": "#/components/schemas/BoardArgs"
               }
             }
           },
@@ -2386,6 +2386,21 @@
           "name": {
             "description": "Board name",
             "type": "string"
+          },
+          "openocd_interface_cfg": {
+            "nullable": true,
+            "description": "OpenOCD Interface Config",
+            "type": "string"
+          },
+          "openocd_target_cfg": {
+            "nullable": true,
+            "description": "OpenOCD Target Config",
+            "type": "string"
+          },
+          "probe_rs_chip": {
+            "nullable": true,
+            "description": "probe-rs Chip Parameter",
+            "type": "string"
           }
         },
         "required": [
@@ -2682,6 +2697,54 @@
           "$ref": "#/components/schemas/ReducedApiKey"
         }
       },
+      "BoardArgs": {
+        "description": "Arguments for creating/updating a board",
+        "type": "object",
+        "properties": {
+          "manufacturer_id": {
+            "description": "Manufacturer ID",
+            "type": "integer",
+            "format": "int64"
+          },
+          "mcu_id": {
+            "description": "MCU ID",
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "description": "Board name",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "openocd_interface_cfg": {
+            "nullable": true,
+            "description": "OpenOCD Interface Config String",
+            "default": null,
+            "type": "string",
+            "maxLength": 200
+          },
+          "openocd_target_cfg": {
+            "nullable": true,
+            "description": "OpenOCD Target Config String",
+            "default": null,
+            "type": "string",
+            "maxLength": 200
+          },
+          "probe_rs_chip": {
+            "nullable": true,
+            "description": "Argument for probe-rs `--chip` parameter",
+            "default": null,
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "manufacturer_id",
+          "mcu_id",
+          "name"
+        ]
+      },
       "BoardInfo": {
         "description": "Metadata for a flash‑able board",
         "type": "object",
@@ -2703,33 +2766,6 @@
           "board_mpn",
           "manufacturer_name",
           "mcu_mpn"
-        ]
-      },
-      "CreateBoardArgs": {
-        "description": "Arguments for creating a new board",
-        "type": "object",
-        "properties": {
-          "manufacturer_id": {
-            "description": "Manufacturer ID",
-            "type": "integer",
-            "format": "int64"
-          },
-          "mcu_id": {
-            "description": "MCU ID",
-            "type": "integer",
-            "format": "int64"
-          },
-          "name": {
-            "description": "Board name (e.g. \"NUCLEO-F103RB\")",
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200
-          }
-        },
-        "required": [
-          "manufacturer_id",
-          "mcu_id",
-          "name"
         ]
       },
       "CreateDeviceArgs": {
@@ -2956,6 +2992,25 @@
             "type": "string",
             "enum": [
               "Timeout"
+            ]
+          }
+        ]
+      },
+      "FlashTool": {
+        "description": "Which flash tool to invoke for a job.",
+        "oneOf": [
+          {
+            "description": "probe-rs (native Rust implementation).",
+            "type": "string",
+            "enum": [
+              "ProbeRs"
+            ]
+          },
+          {
+            "description": "OpenOCD (external process).",
+            "type": "string",
+            "enum": [
+              "OpenOcd"
             ]
           }
         ]
@@ -3241,6 +3296,15 @@
             "minItems": 32,
             "maxItems": 32
           },
+          "flash_tool": {
+            "nullable": true,
+            "description": "Which flash tool to use. If omitted, defaults to `ProbeRs`.\n\nThe controller validates the tool against the target board's capabilities. OpenOCD is scaffolded but not yet supported, so only `ProbeRs` is currently accepted.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FlashTool"
+              }
+            ]
+          },
           "job_type": {
             "description": "Whether this is a regular run job (flash + logstream) or an interactive debug session.",
             "allOf": [
@@ -3250,7 +3314,7 @@
             ]
           },
           "logging_config": {
-            "description": "How firmware logs should be captured.\n\n**IMPORTANT:** Currently only RTT is supported!\n\nAlways required, including for [`onmcu_common::domain::JobType::Debug`] jobs. For Debug jobs the value is currently **stored but not honored** — log capture during debug sessions is not yet implemented. Once it is, the field will start taking effect without an API change. Requiring it from day one keeps the API forward-compatible and avoids an `Option` rippling through the rest of the codebase.",
+            "description": "How firmware logs should be captured.\n\nAlways required, including for [`onmcu_common::domain::JobType::Debug`] jobs. For Debug jobs the value is currently **stored but not honored** — log capture during debug sessions is not yet implemented. Once it is, the field will start taking effect without an API change. Requiring it from day one keeps the API forward-compatible and avoids an `Option` rippling through the rest of the codebase.",
             "allOf": [
               {
                 "$ref": "#/components/schemas/LoggingConfig"
@@ -3453,41 +3517,23 @@
         ]
       },
       "RttConfig": {
-        "description": "Configuration for RTT logging. (Placeholder — fields TBD.)",
+        "description": "Configuration for RTT logging.\n\nCurrently empty; probe-rs uses its built-in RTT defaults.",
         "type": "object",
         "additionalProperties": false
       },
       "SerialConfig": {
-        "description": "Configuration for serial/UART logging. (Placeholder — fields TBD.)",
-        "type": "object",
-        "additionalProperties": false
-      },
-      "UpdateBoardArgs": {
-        "description": "Arguments for updating a board",
+        "description": "Configuration for serial/UART logging.",
         "type": "object",
         "properties": {
-          "manufacturer_id": {
-            "description": "Manufacturer ID",
+          "baud_rate": {
+            "description": "Baud rate.",
+            "default": 115200,
             "type": "integer",
-            "format": "int64"
-          },
-          "mcu_id": {
-            "description": "MCU ID",
-            "type": "integer",
-            "format": "int64"
-          },
-          "name": {
-            "description": "Board name",
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200
+            "format": "uint32",
+            "minimum": 0
           }
         },
-        "required": [
-          "manufacturer_id",
-          "mcu_id",
-          "name"
-        ]
+        "additionalProperties": false
       },
       "UpdateDeviceArgs": {
         "description": "Arguments for updating a device",
@@ -3496,7 +3542,8 @@
           "board_id": {
             "description": "New board ID",
             "type": "integer",
-            "format": "int64"
+            "format": "int64",
+            "minimum": 1
           },
           "enabled": {
             "description": "Whether the device is enabled",

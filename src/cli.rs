@@ -1,7 +1,8 @@
-use clap::{Parser, Subcommand, crate_description, crate_name, crate_version};
+use clap::{Parser, Subcommand, ValueEnum, crate_description, crate_name, crate_version};
 use std::path::PathBuf;
 
 use crate::{
+    api::generated::types::{LoggingConfig, RttConfig, SerialConfig},
     commands::{list_boards, login, run},
     error::CliError,
     upload::UploadConfig,
@@ -42,6 +43,8 @@ impl Cli {
                 wait_timeout,
                 ignore_trailing_args,
                 trailing_args,
+                logging,
+                baud,
             } => {
                 // Development tools may append test arguments to Cargo runner commands.
                 // Reject them unless the flag is set, so typos are still reported.
@@ -52,7 +55,12 @@ impl Cli {
                 if let Some(timeout) = timeout {
                     cfg.timeout_seconds = timeout;
                 }
-                run::handle_run(cfg, board, file, api_key_from_env, wait_timeout).await
+                let logging_config = match logging {
+                    LoggingMode::Rtt => LoggingConfig::Rtt(RttConfig::default()),
+                    LoggingMode::Serial => LoggingConfig::Serial(SerialConfig { baud_rate: baud }),
+                };
+                run::handle_run(cfg, board, file, api_key_from_env, wait_timeout, logging_config)
+                    .await
             }
             Commands::Login { relogin } => {
                 login::handle_login(relogin).await.map_err(CliError::from)
@@ -83,6 +91,12 @@ pub enum Commands {
         /// How long to wait for a device to become available (seconds, default: 300)
         #[arg(long, default_value_t = 300)]
         wait_timeout: u64,
+        /// Log transport: rtt (defmt over the probe) or serial (UART)
+        #[arg(long, value_enum, default_value_t = LoggingMode::Rtt)]
+        logging: LoggingMode,
+        /// Serial baud rate (only used with --logging serial)
+        #[arg(long, default_value_t = 115200)]
+        baud: u32,
         /// Ignore extra test arguments added by development tools
         #[arg(long)]
         ignore_trailing_args: bool,
@@ -102,6 +116,15 @@ pub enum Commands {
         #[arg(long)]
         api_key_from_env: bool,
     },
+}
+
+/// Firmware log transport selected on the command line.
+#[derive(Clone, Debug, ValueEnum)]
+pub enum LoggingMode {
+    /// RTT (defmt) over the debug probe
+    Rtt,
+    /// Serial / UART capture
+    Serial,
 }
 
 pub fn build() -> Cli {
