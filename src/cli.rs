@@ -59,8 +59,15 @@ impl Cli {
                     LoggingMode::Rtt => LoggingConfig::Rtt(RttConfig::default()),
                     LoggingMode::Serial => LoggingConfig::Serial(SerialConfig { baud_rate: baud }),
                 };
-                run::handle_run(cfg, board, file, api_key_from_env, wait_timeout, logging_config)
-                    .await
+                run::handle_run(
+                    cfg,
+                    board,
+                    file,
+                    api_key_from_env,
+                    wait_timeout,
+                    logging_config,
+                )
+                .await
             }
             Commands::Login { relogin } => {
                 login::handle_login(relogin).await.map_err(CliError::from)
