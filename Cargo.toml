@@ -1,6 +1,6 @@
 [package]
 name = "onmcu"
-version = "0.0.1"
+version = "0.1.0"
 edition = "2024"
 authors = [
     "Joel Schulz-Andres <joel@onmcu.com>",
@@ -15,7 +15,6 @@ keywords = ["mcu", "embedded", "remote", "flashing", "ci"]
 readme = "README.md"
 
 [dependencies]
-anyhow = "1.0"
 base64 = "0.22.1"
 chrono = { version = "0.4.45", default-features = false, features = [
     "std",

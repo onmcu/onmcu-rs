@@ -1,6 +1,11 @@
-use std::{default::Default, str::FromStr};
+use std::{
+    default::Default,
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 
 use serde::Deserialize;
+use thiserror::Error;
 use url::Url;
 
 /// All the knobs that drive `upload_file`
@@ -28,6 +33,38 @@ impl Default for UploadConfig {
             retries: 3,
             timeout_seconds: 600,
         }
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum ConfigError {
+    #[error("Could not read config file at {path:?}. Error: {source}")]
+    Read {
+        path: PathBuf,
+        #[source]
+        source: std::io::Error,
+    },
+
+    #[error("Failed to parse config file at {path:?}. Error: {source}")]
+    Parse {
+        path: PathBuf,
+        #[source]
+        source: toml::de::Error,
+    },
+}
+
+impl UploadConfig {
+    /// Load settings from a TOML file.
+    pub fn from_file(path: &Path) -> Result<Self, ConfigError> {
+        let contents = std::fs::read_to_string(path).map_err(|source| ConfigError::Read {
+            path: path.to_owned(),
+            source,
+        })?;
+
+        toml::from_str(&contents).map_err(|source| ConfigError::Parse {
+            path: path.to_owned(),
+            source,
+        })
     }
 }
 

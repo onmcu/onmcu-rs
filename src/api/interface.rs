@@ -13,7 +13,7 @@ pub fn is_board_supported<'a>(
 const PAGE_SIZE: u32 = 100;
 
 /// Fetch all boards from the server, paginating automatically.
-pub async fn fetch_all_boards(client: &AuthenticatedClient) -> anyhow::Result<Vec<BoardInfo>> {
+pub async fn fetch_all_boards(client: &AuthenticatedClient) -> Result<Vec<BoardInfo>, ApiError> {
     let mut all_boards = Vec::new();
     let mut offset: u32 = 0;
 

@@ -1,9 +1,9 @@
-use anyhow::Result;
 use clap::{Parser, Subcommand, crate_description, crate_name, crate_version};
 use std::path::PathBuf;
 
 use crate::{
     commands::{list_boards, login, run},
+    error::CliError,
     upload::UploadConfig,
 };
 
@@ -26,16 +26,11 @@ pub struct Cli {
 }
 
 impl Cli {
-    pub async fn dispatch(self) -> Result<()> {
-        // Get config from cli argument path or construct default
-        let mut cfg = if let Some(ref path) = self.config {
-            let config_contents: String = std::fs::read_to_string(path)
-                .unwrap_or_else(|e| panic!("Could not read config file at {:?}. Error: {e}", path));
-
-            toml::from_str(&config_contents)
-                .unwrap_or_else(|e| panic!("Failed to parse config file at {:?}. Error: {e}", path))
-        } else {
-            UploadConfig::default()
+    pub async fn dispatch(self) -> Result<(), CliError> {
+        // Get config from CLI argument path or construct default
+        let mut cfg = match self.config {
+            Some(ref path) => UploadConfig::from_file(path)?,
+            None => UploadConfig::default(),
         };
 
         match self.command {
@@ -45,14 +40,23 @@ impl Cli {
                 api_key_from_env,
                 timeout,
                 wait_timeout,
+                ignore_trailing_args,
+                trailing_args,
             } => {
+                // Development tools may append test arguments to Cargo runner commands.
+                // Reject them unless the flag is set, so typos are still reported.
+                if !trailing_args.is_empty() && !ignore_trailing_args {
+                    return Err(CliError::UnexpectedArgs(trailing_args));
+                }
                 // Apply CLI argument timeout to config
                 if let Some(timeout) = timeout {
                     cfg.timeout_seconds = timeout;
                 }
                 run::handle_run(cfg, board, file, api_key_from_env, wait_timeout).await
             }
-            Commands::Login { relogin } => login::handle_login(relogin).await,
+            Commands::Login { relogin } => {
+                login::handle_login(relogin).await.map_err(CliError::from)
+            }
             Commands::ListBoards { api_key_from_env } => {
                 list_boards::handle_list_boards(cfg, api_key_from_env).await
             }
@@ -79,6 +83,12 @@ pub enum Commands {
         /// How long to wait for a device to become available (seconds, default: 300)
         #[arg(long, default_value_t = 300)]
         wait_timeout: u64,
+        /// Ignore extra test arguments added by development tools
+        #[arg(long)]
+        ignore_trailing_args: bool,
+        /// Arguments left after parsing the run options
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true, hide = true)]
+        trailing_args: Vec<String>,
     },
     /// Store the API Key into the OS keyring
     Login {
@@ -86,6 +96,7 @@ pub enum Commands {
         #[arg(short, long)]
         relogin: bool,
     },
+    /// List the available boards
     ListBoards {
         /// Read API key from env var ONMCU_API_KEY
         #[arg(long)]

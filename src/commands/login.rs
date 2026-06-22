@@ -1,25 +1,51 @@
-use anyhow::{Context, Result, bail};
 use keyring_core::{Entry, Error as KeyringError};
 use std::io::{self, Write};
+use thiserror::Error;
 use tracing::info;
 
-use crate::keyring;
+use crate::api::AuthError;
+
+#[derive(Error, Debug)]
+pub enum LoginError {
+    #[error(transparent)]
+    Keyring(#[from] AuthError),
+
+    #[error("Failed to save API key to your OS keyring: {0}")]
+    SaveKeyring(AuthError),
+
+    #[error("Terminal input or output failed: {0}")]
+    Io(#[from] std::io::Error),
+
+    #[error("No API key entered")]
+    EmptyKey,
+
+    #[error("Invalid API key format. Expected format: <version>_<uuid>_<secret>")]
+    InvalidFormat,
+
+    #[error("Invalid API key: version '{0}' is not a number")]
+    InvalidVersion(String),
+
+    #[error("Invalid API key: '{0}' is not a valid UUID")]
+    InvalidUuid(String),
+
+    #[error("Invalid API key: secret part is empty")]
+    EmptySecret,
+}
 
 /// `onmcu login [--relogin]`
-pub async fn handle_login(relogin: bool) -> Result<()> {
-    let entry = Entry::new("onmcu-cli", "api_key").map_err(keyring::explain)?;
+pub async fn handle_login(relogin: bool) -> Result<(), LoginError> {
+    let entry = Entry::new("onmcu-cli", "api_key").map_err(AuthError::from)?;
     match entry.get_password() {
         Ok(_) if !relogin => {
             eprintln!("Already logged in. To overwrite, run `onmcu login --relogin`.");
             return Ok(());
         }
         Ok(_) | Err(KeyringError::NoEntry) => { /* fall through to prompt */ }
-        // e.g. no backend available, permission denied, etc.
-        Err(e) => return Err(keyring::explain(e)),
+        Err(e) => return Err(AuthError::from(e).into()),
     }
     // Prompt for new API key
     print!("Enter your API key, it can be retrieved at https://app.onmcu.com/settings: ");
-    io::stdout().flush().unwrap();
+    io::stdout().flush()?;
     let mut buf = String::new();
     io::stdin().read_line(&mut buf)?;
 
@@ -29,35 +55,36 @@ pub async fn handle_login(relogin: bool) -> Result<()> {
     // Store it
     entry
         .set_password(key)
-        .context("Failed to save API key to your OS keyring")?;
+        .map_err(AuthError::from)
+        .map_err(LoginError::SaveKeyring)?;
     info!("✅  API key saved.");
 
     Ok(())
 }
 
 /// Validate API key format: `<version>_<uuid>_<base64-secret>`
-fn validate_api_key(key: &str) -> Result<()> {
+fn validate_api_key(key: &str) -> Result<(), LoginError> {
     if key.is_empty() {
-        bail!("No API key entered");
+        return Err(LoginError::EmptyKey);
     }
 
     let parts: Vec<&str> = key.splitn(3, '_').collect();
     if parts.len() != 3 {
-        bail!("Invalid API key format. Expected format: <version>_<uuid>_<secret>");
+        return Err(LoginError::InvalidFormat);
     }
 
     let [version, uuid, secret] = [parts[0], parts[1], parts[2]];
 
     if version.parse::<u16>().is_err() {
-        bail!("Invalid API key: version '{}' is not a number", version);
+        return Err(LoginError::InvalidVersion(version.to_owned()));
     }
 
     if uuid::Uuid::try_parse(uuid).is_err() {
-        bail!("Invalid API key: '{}' is not a valid UUID", uuid);
+        return Err(LoginError::InvalidUuid(uuid.to_owned()));
     }
 
     if secret.is_empty() {
-        bail!("Invalid API key: secret part is empty");
+        return Err(LoginError::EmptySecret);
     }
 
     Ok(())

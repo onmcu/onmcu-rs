@@ -195,7 +195,7 @@ async fn upload_chunks(
     let pb = ProgressBar::new(prepared_file.total_chunks as u64);
     pb.set_style(
         ProgressStyle::with_template("[{elapsed_precise}] {bar:40.cyan/blue} {pos}/{len} chunks")
-            .unwrap()
+            .unwrap_or_else(|_| ProgressStyle::default_bar())
             .progress_chars("##-"),
     );
 

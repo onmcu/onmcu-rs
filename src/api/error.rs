@@ -1,11 +1,10 @@
 //! Classification of API call failures into user-facing errors.
 //!
-//! The progenitor client returns errors that stringify to the raw HTTP status,
-//! headers, and JSON body. [`verify_access`] checks the key and connectivity
-//! once at startup; `From<ClientError>` then maps any later call failure onto a
-//! clean [`ApiError`] (use `.map_err(ApiError::from)?` at call sites). Because
-//! the key is already known good, a post-startup 401/403 means the operation is
-//! forbidden, not that the key is bad.
+//! The progenitor client returns errors containing the raw HTTP status, headers,
+//! and JSON body. [`verify_access`] classifies responses from the dedicated API
+//! key check, while `From<ClientError>` classifies failures of authenticated
+//! operations. A 401/403 therefore means a rejected key in the former and a
+//! denied operation in the latter.
 
 use secrecy::ExposeSecret as _;
 use thiserror::Error;
@@ -18,7 +17,7 @@ pub type ClientError = generated::Error<types::Error>;
 
 #[derive(Error, Debug)]
 pub enum ApiError {
-    /// 401/403 after the key was verified at startup: this operation is forbidden.
+    /// 401/403 for an operation made with an already validated API key.
     #[error(
         "Access denied. Your API key is valid but is not allowed to perform \
          this operation (check your plan or whether your account has access to \
@@ -26,7 +25,7 @@ pub enum ApiError {
     )]
     AccessDenied,
 
-    /// The key was rejected outright (used by the startup check).
+    /// The API-key validation request was rejected.
     #[error(
         "Your API key is invalid or expired.\n\
          Get a new key at https://app.onmcu.com/settings, then run \
@@ -49,15 +48,28 @@ pub enum ApiError {
 
     #[error("Unexpected API error: {0}")]
     Other(String),
+
+    #[error(
+        "Could not reach the OnMCU server at {server_url}.\n\
+         Check your internet connection and the server URL. ({message})"
+    )]
+    VerificationTransport {
+        server_url: url::Url,
+        message: String,
+    },
+
+    #[error(
+        "The OnMCU server returned an unexpected error ({status}) while \
+         verifying your API key. Please try again later."
+    )]
+    VerificationServer { status: u16 },
 }
 
-/// Verify, once at startup, that the API key is accepted and the controller is
-/// reachable. Returns a friendly error on failure so the caller can run teardown
-/// before exiting, rather than letting a command fail confusingly mid-operation.
+/// Verify that the API key is accepted and the controller is reachable.
 pub async fn verify_access(
     client: &AuthenticatedClient,
     server_url: &url::Url,
-) -> anyhow::Result<()> {
+) -> Result<(), ApiError> {
     let result = client
         .api()
         .get_user()
@@ -68,15 +80,12 @@ pub async fn verify_access(
     let Err(err) = result else { return Ok(()) };
 
     Err(match err.status().map(|s| s.as_u16()) {
-        Some(401) | Some(403) => ApiError::InvalidApiKey.into(),
-        None => anyhow::anyhow!(
-            "Could not reach the OnMCU server at {server_url}.\n\
-             Check your internet connection and the server URL. ({err})"
-        ),
-        Some(status) => anyhow::anyhow!(
-            "The OnMCU server returned an unexpected error ({status}) while \
-             verifying your API key. Please try again later."
-        ),
+        Some(401) | Some(403) => ApiError::InvalidApiKey,
+        None => ApiError::VerificationTransport {
+            server_url: server_url.clone(),
+            message: err.to_string(),
+        },
+        Some(status) => ApiError::VerificationServer { status },
     })
 }
 
@@ -92,8 +101,7 @@ fn extract_body(err: ClientError) -> (String, String) {
     }
 }
 
-/// Map a client error to an [`ApiError`] by HTTP status. Use at call sites via
-/// `.map_err(ApiError::from)?`.
+/// Map a client error to an [`ApiError`] by HTTP status.
 impl From<ClientError> for ApiError {
     fn from(err: ClientError) -> Self {
         match err.status().map(|s| s.as_u16()) {
