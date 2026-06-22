@@ -40,7 +40,6 @@ fn trailing_args_rejected_without_flag() {
     assert!(!status.success(), "expected failure, output: {output}");
 
     // Exit code 2 signals a CLI usage error
-    #[cfg(unix)]
     assert_eq!(
         status.code(),
         Some(2),
