@@ -11,9 +11,11 @@ use tokio_tungstenite::{
 };
 use tracing::{debug, error, info};
 
+use uuid::Uuid;
+
 use crate::api::generated::types::JobStatusView;
 use crate::api::interface::{fetch_all_boards, is_board_supported};
-use crate::api::{ApiError, get_authenticated_client};
+use crate::api::{ApiError, AuthenticatedClient, get_authenticated_client};
 use crate::error::CliError;
 use crate::upload::UploadConfig;
 use crate::upload::submit_job;
@@ -22,6 +24,86 @@ use crate::upload::submit_job;
 /// at one-second intervals. The job status can lag the end-of-logs marker, so
 /// allow a brief grace period before reporting the status as unknown.
 const FINAL_STATUS_POLL_ATTEMPTS: u32 = 10;
+
+/// Interval between job-status polls while waiting for a pending job to start.
+const POLL_INTERVAL: Duration = Duration::from_secs(1);
+
+/// Delay before the first status poll, kept short for quick initial feedback.
+const INITIAL_POLL_DELAY: Duration = Duration::from_millis(100);
+
+/// Result of prompting the user to cancel a job after Ctrl+C.
+enum CancelOutcome {
+    /// User confirmed; the cancellation request was sent successfully.
+    Cancelled,
+    /// User declined; keep waiting/streaming.
+    Resumed,
+}
+
+/// Read a line from stdin and report whether it matches one of `affirmatives`.
+///
+/// Returns `false` if the line cannot be read, treating an unreadable prompt as
+/// a non-confirmation rather than panicking.
+async fn read_confirmation(affirmatives: &[&str]) -> bool {
+    let mut reader = BufReader::new(tokio::io::stdin());
+    let mut response = String::new();
+    if reader.read_line(&mut response).await.is_ok() {
+        let response = response.trim().to_lowercase();
+        return affirmatives.contains(&response.as_str());
+    }
+    false
+}
+
+/// Send the cancellation request for `job_id`.
+///
+/// Maps a failed request to [`CliError::JobCancelFailed`] so callers never
+/// report the job as cancelled while it may still be queued or running.
+async fn cancel_job(client: &AuthenticatedClient, job_id: Uuid) -> Result<(), CliError> {
+    client
+        .api()
+        .cancel_job()
+        .id(job_id)
+        .x_api_key(client.api_key.expose_secret())
+        .send()
+        .await
+        .map_err(ApiError::from)
+        .map_err(CliError::JobCancelFailed)?;
+    Ok(())
+}
+
+/// Prompt the user after Ctrl+C and cancel the job if they confirm.
+async fn confirm_and_cancel(
+    client: &AuthenticatedClient,
+    job_id: Uuid,
+) -> Result<CancelOutcome, CliError> {
+    eprintln!();
+    eprintln!("Received Ctrl+C. Do you want to cancel the job? [y/n]");
+    if read_confirmation(&["y", "yes"]).await {
+        info!("Cancelling job...");
+        cancel_job(client, job_id).await?;
+        Ok(CancelOutcome::Cancelled)
+    } else {
+        Ok(CancelOutcome::Resumed)
+    }
+}
+
+/// Wait `delay`, then fetch the current job status.
+async fn poll_job_status(
+    client: &AuthenticatedClient,
+    job_id: Uuid,
+    delay: Duration,
+) -> Result<JobStatusView, CliError> {
+    tokio::time::sleep(delay).await;
+    let job = client
+        .api()
+        .get_job()
+        .id(job_id)
+        .x_api_key(client.api_key.expose_secret())
+        .send()
+        .await
+        .map_err(ApiError::from)
+        .map_err(CliError::JobStatus)?;
+    Ok(job.into_inner().status)
+}
 
 /// Handle the `run` command: check board and delegate to upload
 pub async fn handle_run(
@@ -60,67 +142,57 @@ pub async fn handle_run(
     eprint!("⏳ Waiting for job to start...");
     let max_wait = Duration::from_secs(wait_timeout);
     'wait: loop {
-        let wait_start = tokio::time::Instant::now();
+        let deadline = tokio::time::Instant::now() + max_wait;
+        let mut poll_delay = INITIAL_POLL_DELAY;
         loop {
-            if wait_start.elapsed() > max_wait {
-                eprintln!();
-                eprintln!(
-                    "No device available after {}s. Wait another {}s or cancel? [w/c]: ",
-                    max_wait.as_secs(),
-                    max_wait.as_secs()
-                );
+            // Race Ctrl+C, the wait deadline, and the next status poll so the
+            // whole pending-wait state stays responsive — including while the
+            // poll request is in flight.
+            tokio::select! {
+                _ = tokio::signal::ctrl_c() => {
+                    match confirm_and_cancel(&client, job_id).await? {
+                        CancelOutcome::Cancelled => return Err(CliError::JobCancelled),
+                        CancelOutcome::Resumed => {
+                            eprint!("⏳ Waiting for job to start...");
+                            continue;
+                        }
+                    }
+                }
+                _ = tokio::time::sleep_until(deadline) => {
+                    eprintln!();
+                    eprintln!(
+                        "No device available after {}s. Wait another {}s or cancel? [w/c]: ",
+                        max_wait.as_secs(),
+                        max_wait.as_secs()
+                    );
 
-                let mut reader = BufReader::new(tokio::io::stdin());
-                let mut response = String::new();
-                if reader.read_line(&mut response).await.is_ok() {
-                    let response = response.trim().to_lowercase();
-                    if response == "w" || response == "wait" {
+                    if read_confirmation(&["w", "wait"]).await {
                         eprint!("⏳ Waiting for job to start...");
                         continue 'wait;
                     }
-                }
 
-                // Cancel the pending job so it doesn't sit in the queue
-                info!("Cancelling pending job...");
-                if let Err(e) = client
-                    .api()
-                    .cancel_job()
-                    .id(job_id)
-                    .x_api_key(client.api_key.expose_secret())
-                    .send()
-                    .await
-                {
-                    error!("Failed to cancel job: {e}");
+                    // Cancel the pending job so it doesn't sit in the queue
+                    info!("Cancelling pending job...");
+                    cancel_job(&client, job_id).await?;
+                    return Err(CliError::NoDeviceAvailable);
                 }
-                return Err(CliError::NoDeviceAvailable);
-            }
-
-            let job = client
-                .api()
-                .get_job()
-                .id(job_id)
-                .x_api_key(client.api_key.expose_secret())
-                .send()
-                .await
-                .map_err(ApiError::from)
-                .map_err(CliError::JobStatus)?;
-
-            match job.into_inner().status {
-                JobStatusView::Running => {
-                    eprintln!(" started!");
-                    break 'wait;
-                }
-                JobStatusView::Completed => {
-                    eprintln!(" completed before log streaming could start");
-                    return Ok(());
-                }
-                JobStatusView::Failed => return Err(CliError::JobFailed),
-                JobStatusView::Cancelled => return Err(CliError::JobCancelled),
-                JobStatusView::Timeout => return Err(CliError::JobTimedOut),
-                _ => {
-                    // Still pending/dispatched — wait and retry
-                    eprint!(".");
-                    tokio::time::sleep(Duration::from_secs(1)).await;
+                status = poll_job_status(&client, job_id, poll_delay) => {
+                    poll_delay = POLL_INTERVAL;
+                    match status? {
+                        JobStatusView::Running => {
+                            eprintln!(" started!");
+                            break 'wait;
+                        }
+                        JobStatusView::Completed => {
+                            eprintln!(" completed before log streaming could start");
+                            return Ok(());
+                        }
+                        JobStatusView::Failed => return Err(CliError::JobFailed),
+                        JobStatusView::Cancelled => return Err(CliError::JobCancelled),
+                        JobStatusView::Timeout => return Err(CliError::JobTimedOut),
+                        // Still pending/dispatched — keep waiting
+                        _ => eprint!("."),
+                    }
                 }
             }
         }
@@ -145,26 +217,14 @@ pub async fn handle_run(
     loop {
         tokio::select! {
             _ = tokio::signal::ctrl_c() => {
-                eprintln!("Received Ctrl+C. Do you want to cancel the job? [y/n]");
-
-                let mut reader = BufReader::new(tokio::io::stdin());
-                let mut response = String::new();
-
-                if reader.read_line(&mut response).await.is_ok() {
-                    let response = response.trim().to_lowercase();
-                    if response == "y" || response == "yes" {
-                        info!("Cancelling job...");
-                        match client.api().cancel_job().id(job_id).x_api_key(client.api_key.expose_secret()).send().await {
-                            Ok(_) => info!("Job cancelled successfully"),
-                            Err(e) => error!("Failed to cancel job: {}", e),
-                        }
-                    } else {
+                match confirm_and_cancel(&client, job_id).await? {
+                    // Let the final-status poll below confirm the outcome.
+                    CancelOutcome::Cancelled => break,
+                    CancelOutcome::Resumed => {
                         info!("Job cancellation aborted, continuing to stream logs...");
                         continue;
                     }
                 }
-
-                break;
             }
             // Wait for the next message or timeout
             res = timeout(Duration::from_secs(30), websocket.try_next()) => {
