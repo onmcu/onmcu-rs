@@ -1,0 +1,25 @@
+.github/workflows/release.yml
+  s_23dd0130ac5d80::t_40ce5738633cfd 134-135
+  s_23dd0130ac5d80::t_e8c0f94b83a78b 137
+.github/build-setup.yml
+  s_23dd0130ac5d80::t_92fd9f386d35cf 7-12,16
+  s_23dd0130ac5d80::t_e905d114caf3c1 13-14
+.github/workflows/ci.yml
+  s_23dd0130ac5d80::t_dca8d640a636d7 70-73
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "5a31496d8023e5819e051f58d13a22b371fbe3f1",
+  "prompts": {},
+  "sessions": {
+    "s_23dd0130ac5d80": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ef1a7ffc-bf9f-4c6d-8f55-e1a84f5c94b2",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Joël Schulz-Andres <joel@systemscape.de>"
+    }
+  }
+}
