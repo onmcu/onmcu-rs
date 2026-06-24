@@ -1,0 +1,32 @@
+dist-workspace.toml
+  s_3a693c5d27808f::t_8793fa205f494a 20-21
+  s_3a693c5d27808f::t_7e8d40400e7f8a 7
+.github/workflows/dependency-advisories.yml
+  s_3a693c5d27808f::t_944f8ff88ff914 13
+  s_3a693c5d27808f::t_670a0eed535cb8 1-12,14-18
+.github/workflows/release.yml
+  s_3a693c5d27808f::t_89e9d6c87d4252 67,69,85,138,152,169,191,198,216,241,248,261,268
+  s_3a693c5d27808f::t_5234f3be3f9c94 115-118,151,153-154
+.github/workflows/openapi-sync.yml
+  s_3a693c5d27808f::t_36129a12167972 37
+.github/workflows/ci.yml
+  s_3a693c5d27808f::t_f2e1693af3a83d 22,48
+.github/workflows/publish-crates.yml
+  s_3a693c5d27808f::t_634cc753744b52 35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "799e98400a6bddfe738f27badba133fdf6913cda",
+  "prompts": {},
+  "sessions": {
+    "s_3a693c5d27808f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ac6cc4f8-1dcc-450e-b82f-eb64803f1447",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Joël Schulz-Andres <joel@systemscape.de>"
+    }
+  }
+}
