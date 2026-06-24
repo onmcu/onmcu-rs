@@ -4,9 +4,15 @@
 # `include`d files into each release archive. Regenerated per release from the
 # locked dependency graph, so the attribution is never stale and is not
 # committed to the repository.
+#
+# cargo-about is installed from source rather than via a prebuilt-binary action:
+# taiki-e/install-action has no manifest entry for it and its cargo-binstall
+# fallback lacks an x86_64-apple-darwin prebuilt, which broke the Intel-macOS
+# build. `cargo install` works uniformly on every runner (all have a toolchain).
+# Bump the pinned version together with the local cargo-about used by ci.yml.
+- name: Cache cargo build
+  uses: Swatinem/rust-cache@v2
 - name: Install cargo-about
-  uses: taiki-e/install-action@v2
-  with:
-    tool: cargo-about
+  run: cargo install cargo-about --version 0.9.0 --locked --features cli
 - name: Generate third-party license attribution
   run: cargo about generate about.hbs --output-file THIRD-PARTY-LICENSES.html
