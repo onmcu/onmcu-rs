@@ -67,8 +67,9 @@ jobs:
         with:
           command: check licenses bans sources
       - uses: dtolnay/rust-toolchain@stable
-      - uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-about
+      - uses: Swatinem/rust-cache@v2
+      # Installed from source for parity with the release build (see
+      # .github/build-setup.yml); rust-cache keeps the rebuild cheap on PRs.
+      - run: cargo install cargo-about --version 0.9.0 --locked
       - name: Smoke-test third-party attribution generation
         run: cargo about generate about.hbs --output-file THIRD-PARTY-LICENSES.html
