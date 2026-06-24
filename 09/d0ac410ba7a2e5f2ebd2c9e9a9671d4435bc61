@@ -1,0 +1,26 @@
+config.example.toml
+  s_0f8dc88de93f04::t_0b9f92eafbb043 1-19
+README.md
+  s_0f8dc88de93f04::t_8635ceb710b36d 77-80
+src/upload/config.rs
+  s_0f8dc88de93f04::t_822762901f75bf 12-15
+  s_0f8dc88de93f04::t_7f8129f1122e6b 119-125
+  s_0f8dc88de93f04::t_a15e1ba74e1a3f 95-118
+  s_0f8dc88de93f04::t_c475449c9644d1 17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "09d0ac410ba7a2e5f2ebd2c9e9a9671d4435bc61",
+  "prompts": {},
+  "sessions": {
+    "s_0f8dc88de93f04": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "74483b9b-22f4-4bb2-92ca-3013ea8b6df2",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Joël Schulz-Andres <joel@systemscape.de>"
+    }
+  }
+}
