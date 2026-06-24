@@ -1,0 +1,36 @@
+.gitignore
+  s_23dd0130ac5d80::t_856c131b2db4a9 5-7
+.github/workflows/ci.yml
+  s_23dd0130ac5d80::t_08cef1581fd774 58-61,73-74
+  s_23dd0130ac5d80::t_e75d1ebdda7d07 56-57,62-72
+deny.toml
+  s_23dd0130ac5d80::t_04ca0406c26d20 1-53
+about.toml
+  s_23dd0130ac5d80::t_9d7505db73dd99 1-32
+.github/workflows/release.yml
+  s_23dd0130ac5d80::t_d91f05d20bdaa2 134-139
+dist-workspace.toml
+  s_23dd0130ac5d80::t_866e53fd35415b 22-23
+  s_23dd0130ac5d80::t_5751d21fb1f6fe 26
+  s_23dd0130ac5d80::t_624fcd8b7457fd 24-25
+.github/build-setup.yml
+  s_23dd0130ac5d80::t_b72c59c9c922ce 1-12
+about.hbs
+  s_23dd0130ac5d80::t_ebb5e052c47006 1-58
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "2429f97ce0de3c3cd6ff0292d165b2261f9b3e56",
+  "prompts": {},
+  "sessions": {
+    "s_23dd0130ac5d80": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ef1a7ffc-bf9f-4c6d-8f55-e1a84f5c94b2",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Joël Schulz-Andres <joel@systemscape.de>"
+    }
+  }
+}
