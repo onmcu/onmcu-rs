@@ -48,9 +48,6 @@ pub enum CliError {
     #[error("Job was cancelled")]
     JobCancelled,
 
-    #[error("Failed to cancel job; it may still be queued or running: {0}")]
-    JobCancelFailed(#[source] ApiError),
-
     #[error("Job timed out")]
     JobTimedOut,
 
@@ -87,7 +84,6 @@ impl CliError {
             CliError::JobStatus(e) | CliError::LogStream(e) => api_exit_code(e),
             CliError::JobFailed => 10,
             CliError::JobCancelled => 11,
-            CliError::JobCancelFailed(_) => 15,
             CliError::JobTimedOut => 12,
             CliError::StatusUnknown => 13,
             CliError::UnexpectedArgs(_) => 2,

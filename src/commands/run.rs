@@ -55,9 +55,9 @@ async fn read_confirmation(affirmatives: &[&str]) -> bool {
 
 /// Send the cancellation request for `job_id`.
 ///
-/// Maps a failed request to [`CliError::JobCancelFailed`] so callers never
-/// report the job as cancelled while it may still be queued or running.
-async fn cancel_job(client: &AuthenticatedClient, job_id: Uuid) -> Result<(), CliError> {
+/// Returns the [`ApiError`] on failure so callers never report the job as
+/// cancelled while it may still be queued or running.
+async fn cancel_job(client: &AuthenticatedClient, job_id: Uuid) -> Result<(), ApiError> {
     client
         .api()
         .cancel_job()
@@ -65,8 +65,7 @@ async fn cancel_job(client: &AuthenticatedClient, job_id: Uuid) -> Result<(), Cl
         .x_api_key(client.api_key.expose_secret())
         .send()
         .await
-        .map_err(ApiError::from)
-        .map_err(CliError::JobCancelFailed)?;
+        .map_err(ApiError::from)?;
     Ok(())
 }
 
