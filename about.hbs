@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Third-Party Licenses — onmcu</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+        max-width: 760px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+        line-height: 1.5;
+      }
+      h1 { font-size: 1.6rem; }
+      h2 { font-size: 1.2rem; margin-top: 2.5rem; }
+      .intro { color: #444; }
+      .license-used-by { margin: 0.5rem 0 0; }
+      .license-text {
+        background: #f6f8fa;
+        border: 1px solid #e1e4e8;
+        border-radius: 6px;
+        padding: 1rem;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        font-size: 0.85rem;
+      }
+      a { color: #0366d6; }
+    </style>
+  </head>
+  <body>
+    <h1>Third-Party Licenses</h1>
+    <p class="intro">
+      The <strong>onmcu</strong> binary statically links the open-source crates
+      listed below. Their licenses and copyright notices are reproduced here in
+      fulfilment of the attribution requirements of those licenses.
+    </p>
+
+    <h2>Overview</h2>
+    <ul>
+      {{#each overview}}
+      <li><a href="#{{id}}">{{name}}</a> ({{count}})</li>
+      {{/each}}
+    </ul>
+
+    {{#each licenses}}
+    <h2 id="{{id}}">{{name}}</h2>
+    <p class="license-used-by">Used by:</p>
+    <ul>
+      {{#each used_by}}
+      <li>
+        <a href="{{#if crate.repository}}{{crate.repository}}{{else}}https://crates.io/crates/{{crate.name}}{{/if}}">{{crate.name}} {{crate.version}}</a>
+      </li>
+      {{/each}}
+    </ul>
+    <pre class="license-text">{{text}}</pre>
+    {{/each}}
+  </body>
+</html>

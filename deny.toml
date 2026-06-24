@@ -1,0 +1,53 @@
+# cargo-deny configuration.
+#
+# Advisories are checked daily by .github/workflows/dependency-advisories.yml.
+# Licenses, bans and sources are checked on every PR by .github/workflows/ci.yml.
+#
+# License policy (schema v2: anything not explicitly allowed is denied, so all
+# copyleft licenses -- GPL, AGPL, LGPL, EUPL, etc. -- are rejected by omission).
+# The allow-list below covers every license currently present in the dependency
+# graph (see `cargo deny list`); keep it in sync when adding dependencies.
+
+[licenses]
+# Permissive licenses we accept. All are notice-only (attribution) obligations,
+# satisfied by the THIRD-PARTY-LICENSES file generated via cargo-about.
+allow = [
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "BSL-1.0",
+    "CC0-1.0",
+    "CDLA-Permissive-2.0",
+    "ISC",
+    "MIT",
+    "MIT-0",
+    "Unicode-3.0",
+    "Unlicense",
+    "Zlib",
+]
+confidence-threshold = 0.8
+
+# MPL-2.0 is weak (file-level) copyleft: it permits linking into a larger work
+# under any license and imposes no obligation on our own code, only that the
+# unmodified MPL source stays available. We pull it solely through progenitor
+# (our build-time OpenAPI client generator and its runtime support crate), so it
+# is whitelisted per-crate here rather than globally -- a new MPL dependency
+# will still fail the license check.
+exceptions = [
+    { allow = ["MPL-2.0"], crate = "progenitor" },
+    { allow = ["MPL-2.0"], crate = "progenitor-client" },
+    { allow = ["MPL-2.0"], crate = "progenitor-impl" },
+    { allow = ["MPL-2.0"], crate = "progenitor-macro" },
+]
+
+[bans]
+# Allow multiple versions of the same crate (common and unavoidable in large
+# graphs); flag wildcard version requirements which make audits unreproducible.
+multiple-versions = "allow"
+wildcards = "deny"
+
+[sources]
+# Only crates.io is expected; reject crates from unknown registries or git.
+unknown-registry = "deny"
+unknown-git = "deny"

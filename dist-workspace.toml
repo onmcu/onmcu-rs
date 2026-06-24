@@ -4,7 +4,7 @@ members = ["cargo:."]
 # Config for 'dist'
 [dist]
 # The preferred dist version to use in CI (Cargo.toml SemVer syntax)
-cargo-dist-version = "0.31.0"
+cargo-dist-version = "0.32.0"
 # CI backends to support
 ci = "github"
 # The installers to generate for each app
@@ -17,3 +17,10 @@ install-path = "CARGO_HOME"
 hosting = "github"
 # Whether to install an updater program
 install-updater = false
+# Generate GitHub artifact attestations (build provenance via actions/attest)
+github-attestations = true
+# Extra files to bundle into every release archive (third-party attribution)
+include = ["THIRD-PARTY-LICENSES.html"]
+# Generate the attribution file at build time (see build-setup.yml) so it is
+# never committed yet always present for the `include` above.
+github-build-setup = "../build-setup.yml"

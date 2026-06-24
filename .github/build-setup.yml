@@ -1,0 +1,12 @@
+# Steps injected into the dist `build-local-artifacts` job via the
+# `github-build-setup` key in dist-workspace.toml. They run before `dist build`
+# so the generated THIRD-PARTY-LICENSES.html exists when dist packages the
+# `include`d files into each release archive. Regenerated per release from the
+# locked dependency graph, so the attribution is never stale and is not
+# committed to the repository.
+- name: Install cargo-about
+  uses: taiki-e/install-action@v2
+  with:
+    tool: cargo-about
+- name: Generate third-party license attribution
+  run: cargo about generate about.hbs --output-file THIRD-PARTY-LICENSES.html
