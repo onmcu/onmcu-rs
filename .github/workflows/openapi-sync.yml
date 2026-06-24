@@ -34,7 +34,7 @@ jobs:
       SOURCE_REPO: ${{ github.event.client_payload.source_repo || inputs.source_repo }}
       RELEASE_URL: ${{ github.event.client_payload.release_url }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       # Defense-in-depth: VERSION flows from a `repository_dispatch`
       # client_payload (or a `workflow_dispatch` input) straight into
