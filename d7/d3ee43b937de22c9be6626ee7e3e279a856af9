@@ -1,0 +1,19 @@
+src/commands/run.rs
+  s_23dd0130ac5d80::t_6666469a348a93 58-60,68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.13",
+  "base_commit_sha": "d7d3ee43b937de22c9be6626ee7e3e279a856af9",
+  "prompts": {},
+  "sessions": {
+    "s_23dd0130ac5d80": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ef1a7ffc-bf9f-4c6d-8f55-e1a84f5c94b2",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Joël Schulz-Andres <joel@systemscape.de>"
+    }
+  }
+}
