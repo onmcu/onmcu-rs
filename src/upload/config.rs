@@ -9,7 +9,12 @@ use thiserror::Error;
 use url::Url;
 
 /// All the knobs that drive `upload_file`
+///
+/// Missing keys fall back to the values from [`UploadConfig::default`], so a
+/// config file only needs to specify the settings that deviate from the
+/// defaults.
 #[derive(Debug, Clone, Deserialize)]
+#[serde(default, deny_unknown_fields)]
 pub struct UploadConfig {
     /// Base URL of the OnMCU server
     pub server: Url,
@@ -86,5 +91,36 @@ mod tests {
         assert_eq!(config.chunk_size, 5);
         assert_eq!(config.retries, 3);
         assert_eq!(config.timeout_seconds, 600);
+    }
+
+    #[test]
+    fn test_empty_config_uses_defaults() {
+        let config: UploadConfig = toml::from_str("").expect("empty config should parse");
+        let defaults = UploadConfig::default();
+
+        assert_eq!(config.server, defaults.server);
+        assert_eq!(config.chunk_size, defaults.chunk_size);
+        assert_eq!(config.retries, defaults.retries);
+        assert_eq!(config.timeout_seconds, defaults.timeout_seconds);
+    }
+
+    #[test]
+    fn test_partial_config_fills_missing_keys() {
+        // Only override a single key; the rest must fall back to defaults.
+        let config: UploadConfig =
+            toml::from_str("retries = 7").expect("partial config should parse");
+        let defaults = UploadConfig::default();
+
+        assert_eq!(config.retries, 7);
+        assert_eq!(config.server, defaults.server);
+        assert_eq!(config.chunk_size, defaults.chunk_size);
+        assert_eq!(config.timeout_seconds, defaults.timeout_seconds);
+    }
+
+    #[test]
+    fn test_unknown_key_is_rejected() {
+        // A misspelled key must be reported instead of silently ignored.
+        let result: Result<UploadConfig, _> = toml::from_str("retris = 7");
+        assert!(result.is_err());
     }
 }
