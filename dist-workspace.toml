@@ -19,3 +19,8 @@ hosting = "github"
 install-updater = false
 # Generate GitHub artifact attestations (build provenance via actions/attest)
 github-attestations = true
+# Extra files to bundle into every release archive (third-party attribution)
+include = ["THIRD-PARTY-LICENSES.html"]
+# Generate the attribution file at build time (see build-setup.yml) so it is
+# never committed yet always present for the `include` above.
+github-build-setup = "../build-setup.yml"

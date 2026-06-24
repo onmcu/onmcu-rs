@@ -2,3 +2,6 @@
 .DS_Store
 *.swp
 *.swo
+
+# Generated at build time by cargo-about (see .github/build-setup.yml)
+/THIRD-PARTY-LICENSES.html

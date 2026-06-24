@@ -53,3 +53,22 @@ jobs:
         with:
           key: ${{ matrix.target }}
       - run: cargo build --locked --profile dist --target ${{ matrix.target }}
+
+  # License compliance: enforce the deny.toml policy (copyleft denied, the
+  # permissive set allowed). The THIRD-PARTY-LICENSES.html attribution file is
+  # generated fresh at release time (see .github/build-setup.yml); here we only
+  # smoke-test that it still generates, so a dependency carrying an unaccepted
+  # license is caught at PR time rather than during a release.
+  licenses:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check licenses bans sources
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-about
+      - name: Smoke-test third-party attribution generation
+        run: cargo about generate about.hbs --output-file THIRD-PARTY-LICENSES.html

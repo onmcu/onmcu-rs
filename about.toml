@@ -1,0 +1,32 @@
+# cargo-about configuration.
+#
+# Generates THIRD-PARTY-LICENSES.html, the attribution document that must ship
+# with the distributed binaries (cargo-dist release archives). Regenerate with:
+#
+#   cargo about generate about.hbs > THIRD-PARTY-LICENSES.html
+#
+# `accepted` must list every license cargo-about may encounter; it mirrors the
+# allow-list in deny.toml plus MPL-2.0 (used by the progenitor crates). For
+# dual/OR-licensed crates (e.g. r-efi: MIT OR Apache-2.0 OR LGPL-2.1-or-later)
+# cargo-about selects the first accepted arm, so LGPL is never chosen.
+
+accepted = [
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "BSL-1.0",
+    "CC0-1.0",
+    "CDLA-Permissive-2.0",
+    "ISC",
+    "MIT",
+    "MIT-0",
+    "MPL-2.0",
+    "Unicode-3.0",
+    "Unlicense",
+    "Zlib",
+]
+
+# Dev-dependencies are not linked into the shipped binary, so their notices are
+# not required in the distribution.
+ignore-dev-dependencies = true
