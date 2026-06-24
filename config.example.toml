@@ -1,0 +1,19 @@
+# Example configuration for the onmcu CLI.
+#
+# Copy this file, adjust the values you care about and pass it via
+# `--config <path>` or the `ONMCU_CLI_CONFIG_PATH` environment variable.
+#
+# Every key is optional: any key you omit falls back to the default shown
+# below, so you only need to keep the settings that differ from the defaults.
+
+# Base URL of the OnMCU controller.
+server = "https://ctrl1.onmcu.com"
+
+# Upload chunk size in MiB (maximum is 10).
+chunk_size = 5
+
+# Number of retries per chunk.
+retries = 3
+
+# Job timeout in seconds (59-86400).
+timeout_seconds = 600

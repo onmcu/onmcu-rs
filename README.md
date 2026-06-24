@@ -74,6 +74,10 @@ retries = 3
 timeout_seconds = 600
 ```
 
+Every key is optional and falls back to the default shown above when omitted,
+so you only need to specify the settings that differ from the defaults. See
+[`config.example.toml`](config.example.toml) for a commented template.
+
 ## Development
 
 This repository is the public, standalone home of the `onmcu` CLI. The
