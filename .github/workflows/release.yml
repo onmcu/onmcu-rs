@@ -134,7 +134,7 @@ jobs:
       - name: "Cache cargo build"
         uses: "Swatinem/rust-cache@v2"
       - name: "Install cargo-about"
-        run: "cargo install cargo-about --version 0.9.0 --locked"
+        run: "cargo install cargo-about --version 0.9.0 --locked --features cli"
       - name: "Generate third-party license attribution"
         run: "cargo about generate about.hbs --output-file THIRD-PARTY-LICENSES.html"
       - name: Install dist
