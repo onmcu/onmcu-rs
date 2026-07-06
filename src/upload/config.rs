@@ -56,6 +56,12 @@ pub enum ConfigError {
         #[source]
         source: toml::de::Error,
     },
+
+    #[error(
+        "Refusing to use the plain-http server URL {url}. The API key would be \
+         sent in cleartext; use https (http is only allowed for localhost)."
+    )]
+    InsecureServer { url: Url },
 }
 
 impl UploadConfig {
@@ -66,10 +72,28 @@ impl UploadConfig {
             source,
         })?;
 
-        toml::from_str(&contents).map_err(|source| ConfigError::Parse {
+        let config: Self = toml::from_str(&contents).map_err(|source| ConfigError::Parse {
             path: path.to_owned(),
             source,
-        })
+        })?;
+        config.validate()?;
+        Ok(config)
+    }
+
+    /// Reject settings that parse but cannot be used safely.
+    fn validate(&self) -> Result<(), ConfigError> {
+        // The API key travels in a header, so cleartext transport would leak
+        // it. Localhost is exempt for development setups.
+        let is_local = matches!(
+            self.server.host_str(),
+            Some("localhost" | "127.0.0.1" | "[::1]")
+        );
+        if self.server.scheme() != "https" && !is_local {
+            return Err(ConfigError::InsecureServer {
+                url: self.server.clone(),
+            });
+        }
+        Ok(())
     }
 }
 
@@ -115,6 +139,26 @@ mod tests {
         assert_eq!(config.server, defaults.server);
         assert_eq!(config.chunk_size, defaults.chunk_size);
         assert_eq!(config.timeout_seconds, defaults.timeout_seconds);
+    }
+
+    #[test]
+    fn test_plain_http_server_is_rejected() {
+        let config: UploadConfig =
+            toml::from_str("server = \"http://ctrl1.onmcu.com\"").expect("should parse");
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn test_plain_http_localhost_is_allowed() {
+        for server in [
+            "http://localhost:8080",
+            "http://127.0.0.1:8080",
+            "http://[::1]:8080",
+        ] {
+            let config: UploadConfig =
+                toml::from_str(&format!("server = \"{server}\"")).expect("should parse");
+            assert!(config.validate().is_ok(), "{server} should be allowed");
+        }
     }
 
     #[test]
