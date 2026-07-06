@@ -49,15 +49,6 @@ pub async fn get_upload_limits(client: &AuthenticatedClient) -> Result<UploadLim
     })
 }
 
-/// Check file size
-fn check_file_size(file: &File, max_size: u64) -> Result<(), UploadError> {
-    let file_size = file.metadata()?.len();
-    if file_size > max_size {
-        return Err(UploadError::FileTooLarge { max_size });
-    }
-    Ok(())
-}
-
 /// Calculate SHA3 hash of a file and return as byte vector
 pub fn calculate_sha3_bytes(file: &mut File) -> std::io::Result<Vec<u8>> {
     file.seek(SeekFrom::Start(0))?;
@@ -84,7 +75,7 @@ pub fn calculate_sha3_bytes(file: &mut File) -> std::io::Result<Vec<u8>> {
 /// File preparation result containing metadata and handles
 struct PreparedFile {
     file: File,
-    file_size: usize,
+    file_size: u64,
     file_hash: Vec<u8>,
     chunk_size: usize,
     total_chunks: u32,
@@ -96,13 +87,21 @@ async fn prepare_file(
     cfg: &UploadConfig,
     client: &AuthenticatedClient,
 ) -> Result<PreparedFile, UploadError> {
-    let file_meta = std::fs::metadata(file_path)?;
-    let file_size = file_meta.len() as usize;
+    // Stat the opened handle so size and upload use the same file, even if
+    // the path is replaced meanwhile.
+    let mut file = File::open(file_path)?;
+    let file_size = file.metadata()?.len();
+    if file_size == 0 {
+        return Err(UploadError::EmptyFile);
+    }
 
     // Get upload limits and validate file size
     let limits = get_upload_limits(client).await?;
-    let mut file = File::open(file_path)?;
-    check_file_size(&file, limits.max_file_size)?;
+    if file_size > limits.max_file_size {
+        return Err(UploadError::FileTooLarge {
+            max_size: limits.max_file_size,
+        });
+    }
 
     // Calculate optimal chunk size. The configured value is validated at
     // config load (1-10 MiB), so only a nonsensical server limit can push
@@ -115,7 +114,7 @@ async fn prepare_file(
         });
     }
 
-    let total_chunks = file_size.div_ceil(chunk_size) as u32;
+    let total_chunks = file_size.div_ceil(chunk_size as u64) as u32;
 
     // Calculate file hash for submission
     let file_hash = calculate_sha3_bytes(&mut file)?;
@@ -205,10 +204,13 @@ async fn upload_chunks(
     let mut buffer = vec![0u8; prepared_file.chunk_size];
 
     for chunk_idx in 0..prepared_file.total_chunks {
-        let offset = (chunk_idx as usize) * prepared_file.chunk_size;
-        let to_read = std::cmp::min(prepared_file.chunk_size, prepared_file.file_size - offset);
+        let offset = u64::from(chunk_idx) * prepared_file.chunk_size as u64;
+        let to_read = std::cmp::min(
+            prepared_file.chunk_size as u64,
+            prepared_file.file_size - offset,
+        ) as usize;
 
-        prepared_file.file.seek(SeekFrom::Start(offset as u64))?;
+        prepared_file.file.seek(SeekFrom::Start(offset))?;
         prepared_file.file.read_exact(&mut buffer[..to_read])?;
         let chunk_data = buffer[..to_read].to_vec();
 
