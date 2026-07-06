@@ -6,6 +6,7 @@ pub mod types;
 pub use error::{ApiError, verify_access};
 pub use types::AuthError;
 pub use types::AuthenticatedClient;
+pub use types::{ApiKeyFormatError, validate_api_key};
 
 use crate::error::CliError;
 

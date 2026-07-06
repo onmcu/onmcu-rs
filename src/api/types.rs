@@ -20,7 +20,60 @@ pub enum AuthError {
     KeyringAccess(KeyringError),
 
     #[error("--api-key-from-env was set, but ONMCU_API_KEY is missing from the environment.")]
-    NoApiKeyInEnv(#[from] std::env::VarError),
+    NoApiKeyInEnv,
+
+    #[error("ONMCU_API_KEY is set but does not contain valid UTF-8.")]
+    EnvKeyNotUnicode,
+
+    #[error("ONMCU_API_KEY is set but malformed: {0}")]
+    InvalidEnvKey(#[from] ApiKeyFormatError),
+}
+
+/// Why an API key failed the `<version>_<uuid>_<secret>` format check.
+#[derive(Error, Debug)]
+pub enum ApiKeyFormatError {
+    #[error("API key is empty")]
+    Empty,
+
+    #[error("Invalid API key format. Expected format: <version>_<uuid>_<secret>")]
+    MissingParts,
+
+    #[error("Invalid API key: version '{0}' is not a number")]
+    Version(String),
+
+    #[error("Invalid API key: '{0}' is not a valid UUID")]
+    Uuid(String),
+
+    #[error("Invalid API key: secret part is empty")]
+    EmptySecret,
+}
+
+/// Validate API key format: `<version>_<uuid>_<base64-secret>`
+pub fn validate_api_key(key: &str) -> Result<(), ApiKeyFormatError> {
+    if key.is_empty() {
+        return Err(ApiKeyFormatError::Empty);
+    }
+
+    let parts: Vec<&str> = key.splitn(3, '_').collect();
+    if parts.len() != 3 {
+        return Err(ApiKeyFormatError::MissingParts);
+    }
+
+    let [version, uuid, secret] = [parts[0], parts[1], parts[2]];
+
+    if version.parse::<u16>().is_err() {
+        return Err(ApiKeyFormatError::Version(version.to_owned()));
+    }
+
+    if uuid::Uuid::try_parse(uuid).is_err() {
+        return Err(ApiKeyFormatError::Uuid(uuid.to_owned()));
+    }
+
+    if secret.is_empty() {
+        return Err(ApiKeyFormatError::EmptySecret);
+    }
+
+    Ok(())
 }
 
 impl From<KeyringError> for AuthError {
@@ -73,13 +126,51 @@ impl AuthenticatedClient {
 
 /// Helper function for API key retrieval from ENV
 fn get_api_key_from_env() -> Result<SecretString, AuthError> {
-    match std::env::var("ONMCU_API_KEY") {
-        Ok(key) => Ok(SecretString::from(key)),
-        Err(e) => Err(AuthError::NoApiKeyInEnv(e)),
-    }
+    let key = match std::env::var("ONMCU_API_KEY") {
+        Ok(key) => key,
+        Err(std::env::VarError::NotPresent) => return Err(AuthError::NoApiKeyInEnv),
+        Err(std::env::VarError::NotUnicode(_)) => return Err(AuthError::EnvKeyNotUnicode),
+    };
+    // Catch empty or malformed keys here instead of sending them to the
+    // server and reporting a generic rejection.
+    validate_api_key(&key)?;
+    Ok(SecretString::from(key))
 }
 
 /// Read the API key from the keyring; `?` maps keyring errors to `AuthError`.
 fn get_api_key(entry: &Entry) -> Result<SecretString, AuthError> {
     Ok(SecretString::from(entry.get_password()?))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn valid_api_key() {
+        let key =
+            "1_1234abcd-ef10-1112-1314-1516171819aa_CDrt-jdp8r9FOpxj7dF7G9jwp5nTdlBUIQrAsD9oPLM=";
+        assert!(validate_api_key(key).is_ok());
+    }
+
+    #[test]
+    fn empty_key_rejected() {
+        assert!(validate_api_key("").is_err());
+    }
+
+    #[test]
+    fn missing_parts_rejected() {
+        assert!(validate_api_key("just-a-string").is_err());
+        assert!(validate_api_key("1_no-secret-part").is_err());
+    }
+
+    #[test]
+    fn invalid_version_rejected() {
+        assert!(validate_api_key("abc_1234abcd-ef10-1112-1314-1516171819aa_secret").is_err());
+    }
+
+    #[test]
+    fn invalid_uuid_rejected() {
+        assert!(validate_api_key("1_not-a-uuid_secret").is_err());
+    }
 }

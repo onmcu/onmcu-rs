@@ -4,7 +4,7 @@ use secrecy::{ExposeSecret as _, SecretString};
 use std::io::{self, IsTerminal as _, Write};
 use thiserror::Error;
 
-use crate::api::AuthError;
+use crate::api::{ApiKeyFormatError, AuthError, validate_api_key};
 
 #[derive(Error, Debug)]
 pub enum LoginError {
@@ -17,20 +17,8 @@ pub enum LoginError {
     #[error("Terminal input or output failed: {0}")]
     Io(#[from] std::io::Error),
 
-    #[error("No API key entered")]
-    EmptyKey,
-
-    #[error("Invalid API key format. Expected format: <version>_<uuid>_<secret>")]
-    InvalidFormat,
-
-    #[error("Invalid API key: version '{0}' is not a number")]
-    InvalidVersion(String),
-
-    #[error("Invalid API key: '{0}' is not a valid UUID")]
-    InvalidUuid(String),
-
-    #[error("Invalid API key: secret part is empty")]
-    EmptySecret,
+    #[error(transparent)]
+    InvalidKey(#[from] ApiKeyFormatError),
 }
 
 /// `onmcu login [--relogin]`
@@ -72,63 +60,3 @@ pub async fn handle_login(relogin: bool) -> Result<(), LoginError> {
     Ok(())
 }
 
-/// Validate API key format: `<version>_<uuid>_<base64-secret>`
-fn validate_api_key(key: &str) -> Result<(), LoginError> {
-    if key.is_empty() {
-        return Err(LoginError::EmptyKey);
-    }
-
-    let parts: Vec<&str> = key.splitn(3, '_').collect();
-    if parts.len() != 3 {
-        return Err(LoginError::InvalidFormat);
-    }
-
-    let [version, uuid, secret] = [parts[0], parts[1], parts[2]];
-
-    if version.parse::<u16>().is_err() {
-        return Err(LoginError::InvalidVersion(version.to_owned()));
-    }
-
-    if uuid::Uuid::try_parse(uuid).is_err() {
-        return Err(LoginError::InvalidUuid(uuid.to_owned()));
-    }
-
-    if secret.is_empty() {
-        return Err(LoginError::EmptySecret);
-    }
-
-    Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn valid_api_key() {
-        let key =
-            "1_1234abcd-ef10-1112-1314-1516171819aa_CDrt-jdp8r9FOpxj7dF7G9jwp5nTdlBUIQrAsD9oPLM=";
-        assert!(validate_api_key(key).is_ok());
-    }
-
-    #[test]
-    fn empty_key_rejected() {
-        assert!(validate_api_key("").is_err());
-    }
-
-    #[test]
-    fn missing_parts_rejected() {
-        assert!(validate_api_key("just-a-string").is_err());
-        assert!(validate_api_key("1_no-secret-part").is_err());
-    }
-
-    #[test]
-    fn invalid_version_rejected() {
-        assert!(validate_api_key("abc_1234abcd-ef10-1112-1314-1516171819aa_secret").is_err());
-    }
-
-    #[test]
-    fn invalid_uuid_rejected() {
-        assert!(validate_api_key("1_not-a-uuid_secret").is_err());
-    }
-}
