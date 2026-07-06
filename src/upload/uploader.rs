@@ -1,3 +1,4 @@
+use bytes::Bytes;
 use indicatif::{ProgressBar, ProgressStyle};
 use secrecy::ExposeSecret as _;
 use sha3::{Digest, Sha3_256};
@@ -220,7 +221,8 @@ async fn upload_chunks(
 
         prepared_file.file.seek(SeekFrom::Start(offset))?;
         prepared_file.file.read_exact(&mut buffer[..to_read])?;
-        let chunk_data = buffer[..to_read].to_vec();
+        // `Bytes` is reference-counted, so retries clone it for free.
+        let chunk_data = Bytes::copy_from_slice(&buffer[..to_read]);
 
         // Retry loop with exponential backoff
         upload_chunk_with_retry(
@@ -257,7 +259,7 @@ async fn upload_chunk_with_retry(
     job_id: Uuid,
     chunk_idx: u32,
     total_chunks: u32,
-    chunk_data: Vec<u8>,
+    chunk_data: Bytes,
     cfg: &UploadConfig,
 ) -> Result<(), UploadError> {
     let mut attempts = 0;
@@ -348,7 +350,7 @@ async fn try_upload_job_chunk(
     job_id: Uuid,
     chunk_number: u32,
     total_chunks: u32,
-    bytes: Vec<u8>,
+    bytes: Bytes,
 ) -> Result<(), UploadError> {
     // ← single generated-client call
     client
