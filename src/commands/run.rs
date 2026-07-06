@@ -286,6 +286,9 @@ pub async fn handle_run(
         }
     }
 
+    // Best-effort close handshake; the connection is going away either way.
+    let _ = websocket.close(None).await;
+
     // Fetch final job status so the user knows the outcome and the process exit
     // code reflects it: success only on `Completed`, error otherwise.
     // The DB update may lag behind the EndOfLogs sentinel, so poll briefly.
