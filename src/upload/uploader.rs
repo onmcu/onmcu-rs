@@ -230,6 +230,17 @@ async fn upload_chunks(
     Ok(())
 }
 
+/// Whether a chunk upload failure is worth retrying: transport problems,
+/// rate limiting, and server-side errors can be transient; anything else
+/// (rejected key, bad request, ...) will fail identically on every attempt.
+fn is_transient(err: &UploadError) -> bool {
+    match err {
+        UploadError::Api(ApiError::Transport(_)) => true,
+        UploadError::Api(ApiError::Server { status, .. }) => *status >= 500 || *status == 429,
+        _ => false,
+    }
+}
+
 /// Upload a single chunk with retry logic
 async fn upload_chunk_with_retry(
     client: &AuthenticatedClient,
@@ -247,6 +258,7 @@ async fn upload_chunk_with_retry(
             .await
         {
             Ok(_) => break,
+            Err(e) if !is_transient(&e) => return Err(e),
             Err(e) if attempts <= cfg.retries.into() => {
                 warn!(
                     "Chunk {chunk_idx} failed (attempt {attempts}/{}) – {e}. Retrying...",
