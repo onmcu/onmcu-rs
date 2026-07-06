@@ -14,7 +14,7 @@ use tracing::{debug, error, info};
 use uuid::Uuid;
 
 use crate::api::generated::types::JobStatusView;
-use crate::api::interface::{fetch_all_boards, is_board_supported};
+use crate::api::interface::{fetch_all_boards, find_board};
 use crate::api::{ApiError, AuthenticatedClient, get_authenticated_client};
 use crate::error::CliError;
 use crate::upload::UploadConfig;
@@ -129,14 +129,16 @@ pub async fn handle_run(
     debug!("Got list of boards {:?}", board_list);
 
     // Check if board is supported
-    if !is_board_supported(&board, board_list.iter()) {
+    let Some(matched) = find_board(&board, board_list.iter()) else {
         info!("Available boards:");
         board_list
             .iter()
             .for_each(|board| info!("  {}", board.board_mpn));
 
         return Err(CliError::BoardNotFound(board));
-    }
+    };
+    // Submit the server's spelling, not whatever casing the user typed.
+    let board = matched.board_mpn.clone();
 
     info!("Running upload for board: {}", board);
 
