@@ -1,0 +1,26 @@
+Cargo.toml
+  s_bfb5558df7274c::t_2ff242c28de3ad 50
+src/upload/uploader.rs
+  s_bfb5558df7274c::t_045ee844066556 1
+  s_bfb5558df7274c::t_38eeaf569e80e7 224-225
+  s_bfb5558df7274c::t_ca00bdfa65e7f7 353
+  s_bfb5558df7274c::t_74895f2768bb64 262
+Cargo.lock
+  s_bfb5558df7274c::t_734ce2feb482e0 176,178,1265
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "0e05d56d3fc99fabbd34ffb8b616ccc1272098aa",
+  "prompts": {},
+  "sessions": {
+    "s_bfb5558df7274c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a28055ba-96b4-44cc-9351-a6cd45bc4031",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Joël Schulz-Andres <joel@systemscape.de>"
+    }
+  }
+}
