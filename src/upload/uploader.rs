@@ -104,13 +104,13 @@ async fn prepare_file(
     let mut file = File::open(file_path)?;
     check_file_size(&file, limits.max_file_size)?;
 
-    // Calculate optimal chunk size
+    // Calculate optimal chunk size. The configured value is validated at
+    // config load (1-10 MiB), so only a nonsensical server limit can push
+    // this out of range.
     let chunk_size = std::cmp::min(limits.max_chunk_size as usize, mib_to_bytes(cfg.chunk_size));
-
-    // Validate chunk size is within allowed range (1-10485760 bytes)
-    if chunk_size < 1 || chunk_size > mib_to_bytes(10) {
+    if chunk_size == 0 {
         return Err(UploadError::IllegalChunkSize {
-            chunk_size: cfg.chunk_size,
+            chunk_size,
             max_size: limits.max_chunk_size,
         });
     }

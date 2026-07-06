@@ -62,6 +62,9 @@ pub enum ConfigError {
          sent in cleartext; use https (http is only allowed for localhost)."
     )]
     InsecureServer { url: Url },
+
+    #[error("chunk_size must be between 1 and 10 MiB, got {0}")]
+    ChunkSize(usize),
 }
 
 impl UploadConfig {
@@ -92,6 +95,9 @@ impl UploadConfig {
             return Err(ConfigError::InsecureServer {
                 url: self.server.clone(),
             });
+        }
+        if !(1..=10).contains(&self.chunk_size) {
+            return Err(ConfigError::ChunkSize(self.chunk_size));
         }
         Ok(())
     }
@@ -158,6 +164,18 @@ mod tests {
             let config: UploadConfig =
                 toml::from_str(&format!("server = \"{server}\"")).expect("should parse");
             assert!(config.validate().is_ok(), "{server} should be allowed");
+        }
+    }
+
+    #[test]
+    fn test_chunk_size_out_of_range_is_rejected() {
+        for chunk_size in [0, 11] {
+            let config: UploadConfig =
+                toml::from_str(&format!("chunk_size = {chunk_size}")).expect("should parse");
+            assert!(
+                config.validate().is_err(),
+                "chunk_size = {chunk_size} should be rejected"
+            );
         }
     }
 
