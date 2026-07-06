@@ -88,7 +88,6 @@ impl From<KeyringError> for AuthError {
 }
 
 pub struct AuthenticatedClient {
-    // pub reqwest_client: ReqwestClient,
     pub api_client: Client,
     pub api_key: SecretString,
 }
@@ -117,11 +116,6 @@ impl AuthenticatedClient {
     pub fn api(&self) -> &Client {
         &self.api_client
     }
-
-    // /// Get the raw reqwest client if needed for custom requests
-    // pub fn reqwest(&self) -> &ReqwestClient {
-    //     &self.reqwest_client
-    // }
 }
 
 /// Helper function for API key retrieval from ENV
