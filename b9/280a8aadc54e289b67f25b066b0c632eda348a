@@ -1,0 +1,20 @@
+src/upload/uploader.rs
+  s_bfb5558df7274c::t_13893f36482db8 92
+  s_bfb5558df7274c::t_e3442267222cc3 119-128
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "b9280a8aadc54e289b67f25b066b0c632eda348a",
+  "prompts": {},
+  "sessions": {
+    "s_bfb5558df7274c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a28055ba-96b4-44cc-9351-a6cd45bc4031",
+        "model": "claude-fable-5"
+      },
+      "human_author": null
+    }
+  }
+}
