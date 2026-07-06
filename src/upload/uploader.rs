@@ -64,7 +64,8 @@ pub fn calculate_sha3_bytes(file: &mut File) -> std::io::Result<Vec<u8>> {
     let mut buffer = [0u8; 8192]; // 8KB chunks
 
     // Read in chunks to avoid loading large files into memory all at once
-    while let Ok(bytes_read) = reader.read(&mut buffer) {
+    loop {
+        let bytes_read = reader.read(&mut buffer)?;
         if bytes_read == 0 {
             break;
         }
