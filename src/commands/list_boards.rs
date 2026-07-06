@@ -24,10 +24,7 @@ pub async fn handle_list_boards(cfg: UploadConfig, api_key_from_env: bool) -> Re
     }
     // Two spaces between columns.
     let (w_board, w_mcu) = (w_board + 2, w_mcu + 2);
-    println!(
-        "{:<w_board$}{:<w_mcu$}{}",
-        "Board MPN", "MCU MPN", "Manufacturer"
-    );
+    println!("{:<w_board$}{:<w_mcu$}Manufacturer", "Board MPN", "MCU MPN");
     println!("{:-<width$}", "", width = w_board + w_mcu + w_manufacturer);
     for board in board_list {
         println!(
