@@ -22,6 +22,9 @@ const fn mib_to_bytes(mib: usize) -> usize {
     mib * 1_048_576
 }
 
+/// Longest pause between chunk upload retries.
+const MAX_RETRY_BACKOFF: Duration = Duration::from_secs(60);
+
 /// Upload limits from the server
 #[derive(Debug, Clone)]
 pub struct UploadLimits {
@@ -249,8 +252,11 @@ async fn upload_chunk_with_retry(
                     "Chunk {chunk_idx} failed (attempt {attempts}/{}) – {e}. Retrying...",
                     cfg.retries
                 );
-                // Exponential backoff: 1s, 2s, 4s, ...
-                sleep(Duration::from_secs(1 << (attempts - 1))).await;
+                // Exponential backoff: 1s, 2s, 4s, ... capped so a high retry
+                // count can neither overflow the shift nor sleep for hours.
+                let backoff =
+                    Duration::from_secs(1 << u32::min(attempts - 1, 6)).min(MAX_RETRY_BACKOFF);
+                sleep(backoff).await;
             }
             Err(e) => {
                 return Err(UploadError::UploadRetryExhausted {
