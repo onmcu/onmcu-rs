@@ -71,7 +71,7 @@ different controller, supply a TOML config file via `--config` or
 server = "https://ctrl1.onmcu.com"
 chunk_size = 5
 retries = 3
-timeout_seconds = 600
+job_timeout_seconds = 600
 ```
 
 Every key is optional and falls back to the default shown above when omitted,

@@ -16,4 +16,4 @@ chunk_size = 5
 retries = 3
 
 # Job timeout in seconds (59-86400).
-timeout_seconds = 600
+job_timeout_seconds = 600

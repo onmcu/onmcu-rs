@@ -325,7 +325,7 @@ pub async fn submit_job(
     let job_id = initialize_job(
         board,
         prepared_file.file_hash.clone(),
-        cfg.timeout_seconds,
+        cfg.job_timeout_seconds,
         client,
         logging_config,
     )

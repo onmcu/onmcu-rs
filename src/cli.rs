@@ -56,7 +56,7 @@ impl Cli {
                 let mut cfg = load_config()?;
                 // Apply CLI argument timeout to config
                 if let Some(timeout) = timeout {
-                    cfg.timeout_seconds = timeout;
+                    cfg.job_timeout_seconds = timeout;
                 }
                 let logging_config = match logging {
                     LoggingMode::Rtt => LoggingConfig::Rtt(RttConfig::default()),

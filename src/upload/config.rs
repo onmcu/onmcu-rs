@@ -26,7 +26,7 @@ pub struct UploadConfig {
     pub retries: u8,
 
     /// Job timeout in seconds (59-86400)
-    pub timeout_seconds: u32,
+    pub job_timeout_seconds: u32,
 }
 
 impl Default for UploadConfig {
@@ -36,7 +36,7 @@ impl Default for UploadConfig {
                 .expect("Parsing URL from str should be verified by a test"),
             chunk_size: 5,
             retries: 3,
-            timeout_seconds: 600,
+            job_timeout_seconds: 600,
         }
     }
 }
@@ -120,7 +120,7 @@ mod tests {
         // Verify other default values
         assert_eq!(config.chunk_size, 5);
         assert_eq!(config.retries, 3);
-        assert_eq!(config.timeout_seconds, 600);
+        assert_eq!(config.job_timeout_seconds, 600);
     }
 
     #[test]
@@ -131,7 +131,7 @@ mod tests {
         assert_eq!(config.server, defaults.server);
         assert_eq!(config.chunk_size, defaults.chunk_size);
         assert_eq!(config.retries, defaults.retries);
-        assert_eq!(config.timeout_seconds, defaults.timeout_seconds);
+        assert_eq!(config.job_timeout_seconds, defaults.job_timeout_seconds);
     }
 
     #[test]
@@ -144,7 +144,7 @@ mod tests {
         assert_eq!(config.retries, 7);
         assert_eq!(config.server, defaults.server);
         assert_eq!(config.chunk_size, defaults.chunk_size);
-        assert_eq!(config.timeout_seconds, defaults.timeout_seconds);
+        assert_eq!(config.job_timeout_seconds, defaults.job_timeout_seconds);
     }
 
     #[test]
