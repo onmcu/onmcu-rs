@@ -253,7 +253,7 @@ pub async fn handle_run(
                         };
                         match message {
                             Some(Message::Text(text)) => {
-                                println!("received: {text}");
+                                println!("{text}");
                             }
                             Some(Message::Ping(_)) => {
                                 debug!("Received Ping");
