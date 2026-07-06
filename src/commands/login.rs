@@ -1,5 +1,7 @@
 use keyring_core::{Entry, Error as KeyringError};
-use std::io::{self, Write};
+use secrecy::zeroize::Zeroize as _;
+use secrecy::{ExposeSecret as _, SecretString};
+use std::io::{self, IsTerminal as _, Write};
 use thiserror::Error;
 
 use crate::api::AuthError;
@@ -43,17 +45,26 @@ pub async fn handle_login(relogin: bool) -> Result<(), LoginError> {
         Err(e) => return Err(AuthError::from(e).into()),
     }
     // Prompt for new API key
-    print!("Enter your API key, it can be retrieved at https://app.onmcu.com/settings: ");
-    io::stdout().flush()?;
-    let mut buf = String::new();
-    io::stdin().read_line(&mut buf)?;
+    let prompt = "Enter your API key, it can be retrieved at https://app.onmcu.com/settings: ";
+    let mut raw = if io::stdin().is_terminal() {
+        // Hidden input so the key doesn't end up on screen or in scrollback.
+        rpassword::prompt_password(prompt)?
+    } else {
+        // Piped input (scripts) has no terminal to hide; read a line as before.
+        print!("{prompt}");
+        io::stdout().flush()?;
+        let mut buf = String::new();
+        io::stdin().read_line(&mut buf)?;
+        buf
+    };
 
-    let key = buf.trim();
-    validate_api_key(key)?;
+    let key = SecretString::from(raw.trim().to_owned());
+    raw.zeroize();
+    validate_api_key(key.expose_secret())?;
 
     // Store it
     entry
-        .set_password(key)
+        .set_password(key.expose_secret())
         .map_err(AuthError::from)
         .map_err(LoginError::SaveKeyring)?;
     println!("✅  API key saved.");
