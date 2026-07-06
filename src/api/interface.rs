@@ -34,7 +34,9 @@ pub async fn fetch_all_boards(client: &AuthenticatedClient) -> Result<Vec<BoardI
         if received == 0 || (all_boards.len() as u32) >= page.total_count {
             break;
         }
-        offset += PAGE_SIZE;
+        // Advance by what the server actually sent; it may return fewer
+        // items than requested even when more pages remain.
+        offset += received as u32;
     }
 
     Ok(all_boards)
