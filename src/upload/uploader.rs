@@ -89,7 +89,7 @@ async fn prepare_file(
 ) -> Result<PreparedFile, UploadError> {
     // Stat the opened handle so size and upload use the same file, even if
     // the path is replaced meanwhile.
-    let mut file = File::open(file_path)?;
+    let file = File::open(file_path)?;
     let file_size = file.metadata()?.len();
     if file_size == 0 {
         return Err(UploadError::EmptyFile);
@@ -116,8 +116,16 @@ async fn prepare_file(
 
     let total_chunks = file_size.div_ceil(chunk_size as u64) as u32;
 
-    // Calculate file hash for submission
-    let file_hash = calculate_sha3_bytes(&mut file)?;
+    // Calculate file hash for submission. Hashing reads the whole file, so
+    // run it off the async runtime instead of blocking it.
+    let (file, file_hash) =
+        tokio::task::spawn_blocking(move || -> std::io::Result<(File, Vec<u8>)> {
+            let mut file = file;
+            let hash = calculate_sha3_bytes(&mut file)?;
+            Ok((file, hash))
+        })
+        .await
+        .map_err(std::io::Error::other)??;
 
     Ok(PreparedFile {
         file,
