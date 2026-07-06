@@ -59,4 +59,3 @@ pub async fn handle_login(relogin: bool) -> Result<(), LoginError> {
 
     Ok(())
 }
-
