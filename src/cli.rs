@@ -28,10 +28,12 @@ pub struct Cli {
 
 impl Cli {
     pub async fn dispatch(self) -> Result<(), CliError> {
-        // Get config from CLI argument path or construct default
-        let mut cfg = match self.config {
-            Some(ref path) => UploadConfig::from_file(path)?,
-            None => UploadConfig::default(),
+        // Load the config lazily so a broken config file can't block
+        // commands that never read it, like `login`.
+        let config_path = self.config;
+        let load_config = || match config_path {
+            Some(ref path) => UploadConfig::from_file(path),
+            None => Ok(UploadConfig::default()),
         };
 
         match self.command {
@@ -51,6 +53,7 @@ impl Cli {
                 if !trailing_args.is_empty() && !ignore_trailing_args {
                     return Err(CliError::UnexpectedArgs(trailing_args));
                 }
+                let mut cfg = load_config()?;
                 // Apply CLI argument timeout to config
                 if let Some(timeout) = timeout {
                     cfg.timeout_seconds = timeout;
@@ -73,7 +76,7 @@ impl Cli {
                 login::handle_login(relogin).await.map_err(CliError::from)
             }
             Commands::ListBoards { api_key_from_env } => {
-                list_boards::handle_list_boards(cfg, api_key_from_env).await
+                list_boards::handle_list_boards(load_config()?, api_key_from_env).await
             }
         }
     }
