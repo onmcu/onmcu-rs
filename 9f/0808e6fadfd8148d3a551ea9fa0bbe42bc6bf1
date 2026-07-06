@@ -1,0 +1,29 @@
+src/cli.rs
+  s_bfb5558df7274c::t_6061edfd9eb6b2 59
+src/upload/uploader.rs
+  s_bfb5558df7274c::t_6061edfd9eb6b2 328
+config.example.toml
+  s_bfb5558df7274c::t_6061edfd9eb6b2 19
+src/upload/config.rs
+  s_bfb5558df7274c::t_6061edfd9eb6b2 29,39,123,134,147
+src/upload/types.rs
+  s_bfb5558df7274c::t_a1115c938d50b6 28
+README.md
+  s_bfb5558df7274c::t_6061edfd9eb6b2 74
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "9f0808e6fadfd8148d3a551ea9fa0bbe42bc6bf1",
+  "prompts": {},
+  "sessions": {
+    "s_bfb5558df7274c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a28055ba-96b4-44cc-9351-a6cd45bc4031",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Joël Schulz-Andres <joel@systemscape.de>"
+    }
+  }
+}
