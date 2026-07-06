@@ -1,7 +1,6 @@
 use keyring_core::{Entry, Error as KeyringError};
 use std::io::{self, Write};
 use thiserror::Error;
-use tracing::info;
 
 use crate::api::AuthError;
 
@@ -57,7 +56,7 @@ pub async fn handle_login(relogin: bool) -> Result<(), LoginError> {
         .set_password(key)
         .map_err(AuthError::from)
         .map_err(LoginError::SaveKeyring)?;
-    info!("✅  API key saved.");
+    println!("✅  API key saved.");
 
     Ok(())
 }
