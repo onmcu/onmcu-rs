@@ -3530,7 +3530,8 @@
             "default": 115200,
             "type": "integer",
             "format": "uint32",
-            "minimum": 0
+            "minimum": 9600,
+            "maximum": 1843200
           }
         },
         "additionalProperties": false
