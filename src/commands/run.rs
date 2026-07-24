@@ -115,7 +115,7 @@ async fn poll_job_status(
 /// Handle the `run` command: check board and delegate to upload
 pub async fn handle_run(
     cfg: UploadConfig,
-    board: String,
+    requested_board: String,
     file_path: PathBuf,
     api_key_from_env: bool,
     wait_timeout: u64,
@@ -129,20 +129,20 @@ pub async fn handle_run(
     debug!("Got list of boards {:?}", board_list);
 
     // Check if board is supported
-    let Some(matched) = find_board(&board, board_list.iter()) else {
+    let Some(board_mpn) =
+        find_board(&requested_board, board_list.iter()).map(|board| board.board_mpn.clone())
+    else {
         info!("Available boards:");
         board_list
             .iter()
             .for_each(|board| info!("  {}", board.board_mpn));
 
-        return Err(CliError::BoardNotFound(board));
+        return Err(CliError::BoardNotFound(requested_board));
     };
-    // Submit the server's spelling, not whatever casing the user typed.
-    let board = matched.board_mpn.clone();
 
-    info!("Running upload for board: {}", board);
+    info!("Running upload for board: {}", board_mpn);
 
-    let job_id = submit_job(file_path, board, &cfg, &client, logging_config).await?;
+    let job_id = submit_job(file_path, board_mpn, &cfg, &client, logging_config).await?;
 
     info!("Submitted file for Job ID {job_id}");
 
