@@ -10,6 +10,7 @@
 use secrecy::ExposeSecret as _;
 use thiserror::Error;
 
+use crate::SUPPORTED_VERSIONS;
 use crate::api::AuthenticatedClient;
 use crate::api::generated::{self, types};
 
@@ -51,13 +52,18 @@ pub enum ApiError {
     Other(String),
 
     #[error(
+        "Server version {server_version} is not supported. Supported Versions: {supported_versions:?}. You may need to update this application."
+    )]
+    UnsupportedServerVersion {
+        server_version: String,
+        supported_versions: Vec<String>,
+    },
+
+    #[error(
         "Could not reach the OnMCU server at {server_url}.\n\
          Check your internet connection and the server URL. ({message})"
     )]
-    VerificationTransport {
-        server_url: url::Url,
-        message: String,
-    },
+    VerificationTransport { server_url: String, message: String },
 
     #[error(
         "The OnMCU server returned an unexpected error ({status}) while \
@@ -67,10 +73,7 @@ pub enum ApiError {
 }
 
 /// Verify that the API key is accepted and the controller is reachable.
-pub async fn verify_access(
-    client: &AuthenticatedClient,
-    server_url: &url::Url,
-) -> Result<(), ApiError> {
+pub async fn verify_access(client: &AuthenticatedClient) -> Result<(), ApiError> {
     let result = client
         .api()
         .get_user()
@@ -83,13 +86,39 @@ pub async fn verify_access(
     Err(match err.status().map(|s| s.as_u16()) {
         Some(401) | Some(403) => ApiError::InvalidApiKey,
         None => ApiError::VerificationTransport {
-            server_url: server_url.clone(),
+            server_url: client.api_client.baseurl.clone(),
             message: err.to_string(),
         },
         Some(status) => ApiError::VerificationServer { status },
     })
 }
 
+/// Verify that the controller version is supported by this version of the CLI.
+pub async fn check_controller_version(client: &AuthenticatedClient) -> Result<(), ApiError> {
+    let result = client.api().get_openapi().send().await?;
+
+    let version = &result["info"]["version"];
+
+    if version.is_null() {
+        return Err(ApiError::Other(
+            "Controller OpenAPI specification contains no version field".into(),
+        ));
+    }
+
+    let Some(version) = version.as_str() else {
+        return Err(ApiError::Other(
+            "Controller OpenAPI specification version was not a string".into(),
+        ));
+    };
+
+    if !SUPPORTED_VERSIONS.contains(&version) {
+        return Err(ApiError::UnsupportedServerVersion {
+            server_version: version.into(),
+            supported_versions: SUPPORTED_VERSIONS.iter().map(|&v| v.into()).collect(),
+        });
+    }
+    Ok(())
+}
 /// Pull the server's `message` and `request_id` out of a documented error body,
 /// falling back to the error's own `Display` for undocumented responses.
 fn extract_body(err: ClientError) -> (String, String) {
