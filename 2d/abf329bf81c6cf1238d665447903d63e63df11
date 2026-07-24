@@ -1,0 +1,22 @@
+src/api/error.rs
+  s_961639618620ec::t_e45bfcbcffcade 8-11
+  s_961639618620ec::t_3e6bd954faca79 78-87,89-91,94,98-101,103,105,107,119-140
+src/api/mod.rs
+  s_961639618620ec::t_d928e266cfc01e 6,13,19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "2dabf329bf81c6cf1238d665447903d63e63df11",
+  "prompts": {},
+  "sessions": {
+    "s_961639618620ec": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7ef647a1-6fa2-4c00-86a0-cdb64c814658",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "JuliDi <julian@systemscape.de>"
+    }
+  }
+}
