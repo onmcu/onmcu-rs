@@ -3,9 +3,12 @@
 //! The progenitor client returns errors containing the raw HTTP status, headers,
 //! and JSON body. [`verify_access`] classifies responses from the dedicated API
 //! key check, while `From<ClientError>` classifies failures of authenticated
-//! operations. During verification any 401/403 means a rejected key; afterwards
-//! a 401 means the key stopped being accepted (revoked/expired mid-session)
-//! while a 403 means the key is fine but the operation was denied.
+//! operations. A 401/403 therefore means a rejected key in the former and a
+//! denied operation in the latter.
+//!
+//! Startup runs [`check_connectivity`], [`check_controller_version`] and
+//! [`verify_access`] in that order, so each reports on exactly one cause of
+//! failure: an unreachable server, an incompatible controller, a bad API key.
 
 use secrecy::ExposeSecret as _;
 use thiserror::Error;
@@ -72,7 +75,49 @@ pub enum ApiError {
     VerificationServer { status: u16 },
 }
 
-/// Verify that the API key is accepted and the controller is reachable.
+/// Verify that the controller is reachable at all.
+///
+/// Any HTTP response counts as reachable — the status is irrelevant here, the
+/// later checks judge what the server actually answered. The response body is
+/// dropped without being read.
+pub async fn check_connectivity(client: &AuthenticatedClient) -> Result<(), ApiError> {
+    client
+        .api_client
+        .client
+        .get(&client.api_client.baseurl)
+        .send()
+        .await
+        .map(|_| ())
+        .map_err(|err| ApiError::VerificationTransport {
+            server_url: client.api_client.baseurl.clone(),
+            message: err.to_string(),
+        })
+}
+
+/// Verify that the controller version is supported by this version of the CLI.
+///
+/// There is no dedicated version endpoint yet, so the version is read out of
+/// the `info` block of the OpenAPI document the controller serves. Moving to a
+/// `/version` endpoint only means replacing the request below.
+pub async fn check_controller_version(client: &AuthenticatedClient) -> Result<(), ApiError> {
+    let spec = client.api().get_openapi().send().await?;
+
+    let Some(version) = spec["info"]["version"].as_str() else {
+        return Err(ApiError::Other(
+            "Controller OpenAPI specification contains no version string".into(),
+        ));
+    };
+
+    if !SUPPORTED_VERSIONS.contains(&version) {
+        return Err(ApiError::UnsupportedServerVersion {
+            server_version: version.into(),
+            supported_versions: SUPPORTED_VERSIONS.iter().map(|&v| v.into()).collect(),
+        });
+    }
+    Ok(())
+}
+
+/// Verify that the API key is accepted by the controller.
 pub async fn verify_access(client: &AuthenticatedClient) -> Result<(), ApiError> {
     let result = client
         .api()
@@ -93,32 +138,6 @@ pub async fn verify_access(client: &AuthenticatedClient) -> Result<(), ApiError>
     })
 }
 
-/// Verify that the controller version is supported by this version of the CLI.
-pub async fn check_controller_version(client: &AuthenticatedClient) -> Result<(), ApiError> {
-    let result = client.api().get_openapi().send().await?;
-
-    let version = &result["info"]["version"];
-
-    if version.is_null() {
-        return Err(ApiError::Other(
-            "Controller OpenAPI specification contains no version field".into(),
-        ));
-    }
-
-    let Some(version) = version.as_str() else {
-        return Err(ApiError::Other(
-            "Controller OpenAPI specification version was not a string".into(),
-        ));
-    };
-
-    if !SUPPORTED_VERSIONS.contains(&version) {
-        return Err(ApiError::UnsupportedServerVersion {
-            server_version: version.into(),
-            supported_versions: SUPPORTED_VERSIONS.iter().map(|&v| v.into()).collect(),
-        });
-    }
-    Ok(())
-}
 /// Pull the server's `message` and `request_id` out of a documented error body,
 /// falling back to the error's own `Display` for undocumented responses.
 fn extract_body(err: ClientError) -> (String, String) {
