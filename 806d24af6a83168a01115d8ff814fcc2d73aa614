@@ -1,0 +1,22 @@
+src/commands/run.rs
+  s_bfb5558df7274c::t_5d29b0cb6a3424 132,139-141
+  s_bfb5558df7274c::t_ac4f49d7393f80 17
+src/api/interface.rs
+  s_bfb5558df7274c::t_5cb8a49f6af6e6 6-8,11-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "806d24af6a83168a01115d8ff814fcc2d73aa614",
+  "prompts": {},
+  "sessions": {
+    "s_bfb5558df7274c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a28055ba-96b4-44cc-9351-a6cd45bc4031",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Joël Schulz-Andres <joel@systemscape.de>"
+    }
+  }
+}

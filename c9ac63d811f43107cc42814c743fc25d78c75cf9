@@ -1,0 +1,25 @@
+src/commands/run.rs
+  s_bfb5558df7274c::t_0d3505a4acde16 170-177,179-182
+  s_bfb5558df7274c::t_d6e2a746972e81 78-85
+  s_bfb5558df7274c::t_fe9bed79c36a20 3
+  s_bfb5558df7274c::t_f8422368fc8779 291,293-315
+src/error.rs
+  s_bfb5558df7274c::t_58dce30d7e71b2 93-94
+  s_bfb5558df7274c::t_ed4b3dd12620ff 57-59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "c9ac63d811f43107cc42814c743fc25d78c75cf9",
+  "prompts": {},
+  "sessions": {
+    "s_bfb5558df7274c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a28055ba-96b4-44cc-9351-a6cd45bc4031",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Joël Schulz-Andres <joel@systemscape.de>"
+    }
+  }
+}
