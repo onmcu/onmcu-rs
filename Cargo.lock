@@ -1244,6 +1244,7 @@ dependencies = [
  "reqwest",
  "rpassword",
  "secrecy",
+ "semver",
  "serde",
  "serde_json",
  "sha3",

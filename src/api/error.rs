@@ -11,11 +11,11 @@
 //! failure: an unreachable server, an incompatible controller, a bad API key.
 
 use secrecy::ExposeSecret as _;
+use semver::{Version, VersionReq};
 use thiserror::Error;
 
-use crate::SUPPORTED_VERSIONS;
 use crate::api::AuthenticatedClient;
-use crate::api::generated::{self, types};
+use crate::api::generated::{self, ClientInfo as _, types};
 
 /// A progenitor client error carrying the server's structured error body.
 pub type ClientError = generated::Error<types::Error>;
@@ -55,11 +55,11 @@ pub enum ApiError {
     Other(String),
 
     #[error(
-        "Server version {server_version} is not supported. Supported Versions: {supported_versions:?}. You may need to update this application."
+        "Server version {server_version} is not supported. Supported version (according to semver): {supported_versions}. You may need to update this application."
     )]
     UnsupportedServerVersion {
-        server_version: String,
-        supported_versions: Vec<String>,
+        server_version: Version,
+        supported_versions: VersionReq,
     },
 
     #[error(
@@ -96,8 +96,11 @@ pub async fn check_connectivity(client: &AuthenticatedClient) -> Result<(), ApiE
 
 /// Verify that the controller version is supported by this version of the CLI.
 ///
-/// There is no dedicated version endpoint yet, so the version is read out of
-/// the `info` block of the OpenAPI document the controller serves. Moving to a
+/// Supported means semver-compatible with the OpenAPI spec this client was
+/// generated from, the same rule Cargo applies to crate dependencies.
+///
+/// There is no dedicated version endpoint yet, so the controller's version is
+/// read out of the `info` block of the OpenAPI document it serves. Moving to a
 /// `/version` endpoint only means replacing the request below.
 pub async fn check_controller_version(client: &AuthenticatedClient) -> Result<(), ApiError> {
     let spec = client.api().get_openapi().send().await?;
@@ -108,10 +111,15 @@ pub async fn check_controller_version(client: &AuthenticatedClient) -> Result<()
         ));
     };
 
-    if !SUPPORTED_VERSIONS.contains(&version) {
+    let version = Version::parse(version)
+        .map_err(|e| ApiError::Other(format!("Controller reported version {version}: {e}")))?;
+    let supported = VersionReq::parse(&format!("^{}", generated::Client::api_version()))
+        .expect("generated client is versioned with valid semver");
+
+    if !supported.matches(&version) {
         return Err(ApiError::UnsupportedServerVersion {
-            server_version: version.into(),
-            supported_versions: SUPPORTED_VERSIONS.iter().map(|&v| v.into()).collect(),
+            server_version: version,
+            supported_versions: supported,
         });
     }
     Ok(())
