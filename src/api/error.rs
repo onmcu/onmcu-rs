@@ -3,8 +3,9 @@
 //! The progenitor client returns errors containing the raw HTTP status, headers,
 //! and JSON body. [`verify_access`] classifies responses from the dedicated API
 //! key check, while `From<ClientError>` classifies failures of authenticated
-//! operations. A 401/403 therefore means a rejected key in the former and a
-//! denied operation in the latter.
+//! operations. During verification any 401/403 means a rejected key; afterwards
+//! a 401 means the key stopped being accepted (revoked/expired mid-session)
+//! while a 403 means the key is fine but the operation was denied.
 
 use secrecy::ExposeSecret as _;
 use thiserror::Error;
@@ -17,7 +18,7 @@ pub type ClientError = generated::Error<types::Error>;
 
 #[derive(Error, Debug)]
 pub enum ApiError {
-    /// 401/403 for an operation made with an already validated API key.
+    /// 403 for an operation made with an already validated API key.
     #[error(
         "Access denied. Your API key is valid but is not allowed to perform \
          this operation (check your plan or whether your account has access to \
@@ -105,7 +106,8 @@ fn extract_body(err: ClientError) -> (String, String) {
 impl From<ClientError> for ApiError {
     fn from(err: ClientError) -> Self {
         match err.status().map(|s| s.as_u16()) {
-            Some(401) | Some(403) => ApiError::AccessDenied,
+            Some(401) => ApiError::InvalidApiKey,
+            Some(403) => ApiError::AccessDenied,
             Some(404) => ApiError::NotFound(extract_body(err).0),
             Some(status) => {
                 let (message, request_id) = extract_body(err);

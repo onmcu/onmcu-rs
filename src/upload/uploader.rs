@@ -1,3 +1,4 @@
+use bytes::Bytes;
 use indicatif::{ProgressBar, ProgressStyle};
 use secrecy::ExposeSecret as _;
 use sha3::{Digest, Sha3_256};
@@ -21,6 +22,9 @@ use crate::api::{ApiError, AuthenticatedClient};
 const fn mib_to_bytes(mib: usize) -> usize {
     mib * 1_048_576
 }
+
+/// Longest pause between chunk upload retries.
+const MAX_RETRY_BACKOFF: Duration = Duration::from_secs(60);
 
 /// Upload limits from the server
 #[derive(Debug, Clone)]
@@ -46,15 +50,6 @@ pub async fn get_upload_limits(client: &AuthenticatedClient) -> Result<UploadLim
     })
 }
 
-/// Check file size
-fn check_file_size(file: &File, max_size: u64) -> Result<(), UploadError> {
-    let file_size = file.metadata()?.len();
-    if file_size > max_size {
-        return Err(UploadError::FileTooLarge { max_size });
-    }
-    Ok(())
-}
-
 /// Calculate SHA3 hash of a file and return as byte vector
 pub fn calculate_sha3_bytes(file: &mut File) -> std::io::Result<Vec<u8>> {
     file.seek(SeekFrom::Start(0))?;
@@ -64,7 +59,8 @@ pub fn calculate_sha3_bytes(file: &mut File) -> std::io::Result<Vec<u8>> {
     let mut buffer = [0u8; 8192]; // 8KB chunks
 
     // Read in chunks to avoid loading large files into memory all at once
-    while let Ok(bytes_read) = reader.read(&mut buffer) {
+    loop {
+        let bytes_read = reader.read(&mut buffer)?;
         if bytes_read == 0 {
             break;
         }
@@ -80,7 +76,7 @@ pub fn calculate_sha3_bytes(file: &mut File) -> std::io::Result<Vec<u8>> {
 /// File preparation result containing metadata and handles
 struct PreparedFile {
     file: File,
-    file_size: usize,
+    file_size: u64,
     file_hash: Vec<u8>,
     chunk_size: usize,
     total_chunks: u32,
@@ -92,29 +88,45 @@ async fn prepare_file(
     cfg: &UploadConfig,
     client: &AuthenticatedClient,
 ) -> Result<PreparedFile, UploadError> {
-    let file_meta = std::fs::metadata(file_path)?;
-    let file_size = file_meta.len() as usize;
+    // Stat the opened handle so size and upload use the same file, even if
+    // the path is replaced meanwhile.
+    let file = File::open(file_path)?;
+    let file_size = file.metadata()?.len();
+    if file_size == 0 {
+        return Err(UploadError::EmptyFile);
+    }
 
     // Get upload limits and validate file size
     let limits = get_upload_limits(client).await?;
-    let mut file = File::open(file_path)?;
-    check_file_size(&file, limits.max_file_size)?;
+    if file_size > limits.max_file_size {
+        return Err(UploadError::FileTooLarge {
+            max_size: limits.max_file_size,
+        });
+    }
 
-    // Calculate optimal chunk size
+    // Calculate optimal chunk size. The configured value is validated at
+    // config load (1-10 MiB), so only a nonsensical server limit can push
+    // this out of range.
     let chunk_size = std::cmp::min(limits.max_chunk_size as usize, mib_to_bytes(cfg.chunk_size));
-
-    // Validate chunk size is within allowed range (1-10485760 bytes)
-    if chunk_size < 1 || chunk_size > mib_to_bytes(10) {
+    if chunk_size == 0 {
         return Err(UploadError::IllegalChunkSize {
-            chunk_size: cfg.chunk_size,
+            chunk_size,
             max_size: limits.max_chunk_size,
         });
     }
 
-    let total_chunks = file_size.div_ceil(chunk_size) as u32;
+    let total_chunks = file_size.div_ceil(chunk_size as u64) as u32;
 
-    // Calculate file hash for submission
-    let file_hash = calculate_sha3_bytes(&mut file)?;
+    // Calculate file hash for submission. Hashing reads the whole file, so
+    // run it off the async runtime instead of blocking it.
+    let (file, file_hash) =
+        tokio::task::spawn_blocking(move || -> std::io::Result<(File, Vec<u8>)> {
+            let mut file = file;
+            let hash = calculate_sha3_bytes(&mut file)?;
+            Ok((file, hash))
+        })
+        .await
+        .map_err(std::io::Error::other)??;
 
     Ok(PreparedFile {
         file,
@@ -201,12 +213,16 @@ async fn upload_chunks(
     let mut buffer = vec![0u8; prepared_file.chunk_size];
 
     for chunk_idx in 0..prepared_file.total_chunks {
-        let offset = (chunk_idx as usize) * prepared_file.chunk_size;
-        let to_read = std::cmp::min(prepared_file.chunk_size, prepared_file.file_size - offset);
+        let offset = u64::from(chunk_idx) * prepared_file.chunk_size as u64;
+        let to_read = std::cmp::min(
+            prepared_file.chunk_size as u64,
+            prepared_file.file_size - offset,
+        ) as usize;
 
-        prepared_file.file.seek(SeekFrom::Start(offset as u64))?;
+        prepared_file.file.seek(SeekFrom::Start(offset))?;
         prepared_file.file.read_exact(&mut buffer[..to_read])?;
-        let chunk_data = buffer[..to_read].to_vec();
+        // `Bytes` is reference-counted, so retries clone it for free.
+        let chunk_data = Bytes::copy_from_slice(&buffer[..to_read]);
 
         // Retry loop with exponential backoff
         upload_chunk_with_retry(
@@ -226,13 +242,24 @@ async fn upload_chunks(
     Ok(())
 }
 
+/// Whether a chunk upload failure is worth retrying: transport problems,
+/// rate limiting, and server-side errors can be transient; anything else
+/// (rejected key, bad request, ...) will fail identically on every attempt.
+fn is_transient(err: &UploadError) -> bool {
+    match err {
+        UploadError::Api(ApiError::Transport(_)) => true,
+        UploadError::Api(ApiError::Server { status, .. }) => *status >= 500 || *status == 429,
+        _ => false,
+    }
+}
+
 /// Upload a single chunk with retry logic
 async fn upload_chunk_with_retry(
     client: &AuthenticatedClient,
     job_id: Uuid,
     chunk_idx: u32,
     total_chunks: u32,
-    chunk_data: Vec<u8>,
+    chunk_data: Bytes,
     cfg: &UploadConfig,
 ) -> Result<(), UploadError> {
     let mut attempts = 0;
@@ -243,13 +270,17 @@ async fn upload_chunk_with_retry(
             .await
         {
             Ok(_) => break,
+            Err(e) if !is_transient(&e) => return Err(e),
             Err(e) if attempts <= cfg.retries.into() => {
                 warn!(
                     "Chunk {chunk_idx} failed (attempt {attempts}/{}) – {e}. Retrying...",
                     cfg.retries
                 );
-                // Exponential backoff: 1s, 2s, 4s, ...
-                sleep(Duration::from_secs(1 << (attempts - 1))).await;
+                // Exponential backoff: 1s, 2s, 4s, ... capped so a high retry
+                // count can neither overflow the shift nor sleep for hours.
+                let backoff =
+                    Duration::from_secs(1 << u32::min(attempts - 1, 6)).min(MAX_RETRY_BACKOFF);
+                sleep(backoff).await;
             }
             Err(e) => {
                 return Err(UploadError::UploadRetryExhausted {
@@ -294,7 +325,7 @@ pub async fn submit_job(
     let job_id = initialize_job(
         board,
         prepared_file.file_hash.clone(),
-        cfg.timeout_seconds,
+        cfg.job_timeout_seconds,
         client,
         logging_config,
     )
@@ -319,7 +350,7 @@ async fn try_upload_job_chunk(
     job_id: Uuid,
     chunk_number: u32,
     total_chunks: u32,
-    bytes: Vec<u8>,
+    bytes: Bytes,
 ) -> Result<(), UploadError> {
     // ← single generated-client call
     client

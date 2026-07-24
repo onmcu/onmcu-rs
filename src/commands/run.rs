@@ -1,6 +1,6 @@
 use futures::{SinkExt, TryStreamExt as _};
 use secrecy::ExposeSecret;
-use std::{path::PathBuf, time::Duration};
+use std::{io::IsTerminal as _, path::PathBuf, time::Duration};
 use tokio::{
     io::{AsyncBufReadExt, BufReader},
     time::timeout,
@@ -14,7 +14,7 @@ use tracing::{debug, error, info};
 use uuid::Uuid;
 
 use crate::api::generated::types::JobStatusView;
-use crate::api::interface::{fetch_all_boards, is_board_supported};
+use crate::api::interface::{fetch_all_boards, find_board};
 use crate::api::{ApiError, AuthenticatedClient, get_authenticated_client};
 use crate::error::CliError;
 use crate::upload::UploadConfig;
@@ -75,6 +75,14 @@ async fn confirm_and_cancel(
     job_id: Uuid,
 ) -> Result<CancelOutcome, CliError> {
     eprintln!();
+    // Without a terminal there is nobody to answer the prompt. Cancel right
+    // away so SIGINT still stops the CLI in scripts and CI, where the
+    // installed signal handler would otherwise make the process unkillable.
+    if !std::io::stdin().is_terminal() {
+        eprintln!("Received SIGINT. Cancelling job...");
+        cancel_job(client, job_id).await?;
+        return Ok(CancelOutcome::Cancelled);
+    }
     eprintln!("Received Ctrl+C. Do you want to cancel the job? [y/n]");
     if read_confirmation(&["y", "yes"]).await {
         info!("Cancelling job...");
@@ -107,7 +115,7 @@ async fn poll_job_status(
 /// Handle the `run` command: check board and delegate to upload
 pub async fn handle_run(
     cfg: UploadConfig,
-    board: String,
+    requested_board: String,
     file_path: PathBuf,
     api_key_from_env: bool,
     wait_timeout: u64,
@@ -121,18 +129,20 @@ pub async fn handle_run(
     debug!("Got list of boards {:?}", board_list);
 
     // Check if board is supported
-    if !is_board_supported(&board, board_list.iter()) {
+    let Some(board_mpn) =
+        find_board(&requested_board, board_list.iter()).map(|board| board.board_mpn.clone())
+    else {
         info!("Available boards:");
         board_list
             .iter()
             .for_each(|board| info!("  {}", board.board_mpn));
 
-        return Err(CliError::BoardNotFound(board));
-    }
+        return Err(CliError::BoardNotFound(requested_board));
+    };
 
-    info!("Running upload for board: {}", board);
+    info!("Running upload for board: {}", board_mpn);
 
-    let job_id = submit_job(file_path, board, &cfg, &client, logging_config).await?;
+    let job_id = submit_job(file_path, board_mpn, &cfg, &client, logging_config).await?;
 
     info!("Submitted file for Job ID {job_id}");
 
@@ -159,15 +169,19 @@ pub async fn handle_run(
                 }
                 _ = tokio::time::sleep_until(deadline) => {
                     eprintln!();
-                    eprintln!(
-                        "No device available after {}s. Wait another {}s or cancel? [w/c]: ",
-                        max_wait.as_secs(),
-                        max_wait.as_secs()
-                    );
+                    // Only prompt when someone can answer; scripts and CI
+                    // fall through to cancelling the pending job.
+                    if std::io::stdin().is_terminal() {
+                        eprintln!(
+                            "No device available after {}s. Wait another {}s or cancel? [w/c]: ",
+                            max_wait.as_secs(),
+                            max_wait.as_secs()
+                        );
 
-                    if read_confirmation(&["w", "wait"]).await {
-                        eprint!("⏳ Waiting for job to start...");
-                        continue 'wait;
+                        if read_confirmation(&["w", "wait"]).await {
+                            eprint!("⏳ Waiting for job to start...");
+                            continue 'wait;
+                        }
                     }
 
                     // Cancel the pending job so it doesn't sit in the queue
@@ -241,7 +255,7 @@ pub async fn handle_run(
                         };
                         match message {
                             Some(Message::Text(text)) => {
-                                println!("received: {text}");
+                                println!("{text}");
                             }
                             Some(Message::Ping(_)) => {
                                 debug!("Received Ping");
@@ -272,34 +286,40 @@ pub async fn handle_run(
         }
     }
 
+    // Best-effort close handshake; the connection is going away either way.
+    let _ = websocket.close(None).await;
+
     // Fetch final job status so the user knows the outcome and the process exit
     // code reflects it: success only on `Completed`, error otherwise.
     // The DB update may lag behind the EndOfLogs sentinel, so poll briefly.
     eprint!("Waiting for final job status...");
+    let mut poll_delay = INITIAL_POLL_DELAY;
     for _ in 0..FINAL_STATUS_POLL_ATTEMPTS {
-        if let Ok(job) = client
-            .api()
-            .get_job()
-            .id(job_id)
-            .x_api_key(client.api_key.expose_secret())
-            .send()
-            .await
-        {
-            let status = job.into_inner().status;
-            if status != JobStatusView::Running {
-                eprintln!(" Status: {status}");
-                return match status {
-                    JobStatusView::Completed => Ok(()),
-                    JobStatusView::Failed => Err(CliError::JobFailed),
-                    JobStatusView::Cancelled => Err(CliError::JobCancelled),
-                    JobStatusView::Timeout => Err(CliError::JobTimedOut),
-                    _ => Err(CliError::StatusUnknown),
-                };
-            } else {
-                eprint!(".");
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => {
+                eprintln!();
+                return Err(CliError::Interrupted);
+            }
+            polled = poll_job_status(&client, job_id, poll_delay) => {
+                poll_delay = POLL_INTERVAL;
+                // A failed poll may succeed on the next attempt, so ignore
+                // errors here and let the attempt counter decide.
+                if let Ok(status) = polled {
+                    if status != JobStatusView::Running {
+                        eprintln!(" Status: {status}");
+                        return match status {
+                            JobStatusView::Completed => Ok(()),
+                            JobStatusView::Failed => Err(CliError::JobFailed),
+                            JobStatusView::Cancelled => Err(CliError::JobCancelled),
+                            JobStatusView::Timeout => Err(CliError::JobTimedOut),
+                            _ => Err(CliError::StatusUnknown),
+                        };
+                    } else {
+                        eprint!(".");
+                    }
+                }
             }
         }
-        tokio::time::sleep(Duration::from_secs(1)).await;
     }
     eprintln!("Job status: unknown (timed out waiting for final status)");
 

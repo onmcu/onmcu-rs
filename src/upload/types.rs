@@ -19,9 +19,12 @@ pub enum UploadError {
     #[error("File exceeds maximum allowed size of {max_size} bytes")]
     FileTooLarge { max_size: u64 },
 
-    #[error("Chunk size {chunk_size} outside allowed range (1-{max_size} bytes)")]
+    #[error("File is empty, nothing to upload")]
+    EmptyFile,
+
+    #[error("Chunk size {chunk_size} bytes outside allowed range (1-{max_size} bytes)")]
     IllegalChunkSize { chunk_size: usize, max_size: u64 },
 
-    #[error("Illegal value for timeout_seconds: {0}")]
+    #[error("Illegal job timeout: {0} seconds (allowed range 59-86400)")]
     IllegalTimeoutSeconds(u32),
 }

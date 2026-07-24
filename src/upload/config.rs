@@ -26,7 +26,7 @@ pub struct UploadConfig {
     pub retries: u8,
 
     /// Job timeout in seconds (59-86400)
-    pub timeout_seconds: u32,
+    pub job_timeout_seconds: u32,
 }
 
 impl Default for UploadConfig {
@@ -36,7 +36,7 @@ impl Default for UploadConfig {
                 .expect("Parsing URL from str should be verified by a test"),
             chunk_size: 5,
             retries: 3,
-            timeout_seconds: 600,
+            job_timeout_seconds: 600,
         }
     }
 }
@@ -56,6 +56,15 @@ pub enum ConfigError {
         #[source]
         source: toml::de::Error,
     },
+
+    #[error(
+        "Refusing to use the plain-http server URL {url}. The API key would be \
+         sent in cleartext; use https (http is only allowed for localhost)."
+    )]
+    InsecureServer { url: Url },
+
+    #[error("chunk_size must be between 1 and 10 MiB, got {0}")]
+    ChunkSize(usize),
 }
 
 impl UploadConfig {
@@ -66,10 +75,31 @@ impl UploadConfig {
             source,
         })?;
 
-        toml::from_str(&contents).map_err(|source| ConfigError::Parse {
+        let config: Self = toml::from_str(&contents).map_err(|source| ConfigError::Parse {
             path: path.to_owned(),
             source,
-        })
+        })?;
+        config.validate()?;
+        Ok(config)
+    }
+
+    /// Reject settings that parse but cannot be used safely.
+    fn validate(&self) -> Result<(), ConfigError> {
+        // The API key travels in a header, so cleartext transport would leak
+        // it. Localhost is exempt for development setups.
+        let is_local = matches!(
+            self.server.host_str(),
+            Some("localhost" | "127.0.0.1" | "[::1]")
+        );
+        if self.server.scheme() != "https" && !is_local {
+            return Err(ConfigError::InsecureServer {
+                url: self.server.clone(),
+            });
+        }
+        if !(1..=10).contains(&self.chunk_size) {
+            return Err(ConfigError::ChunkSize(self.chunk_size));
+        }
+        Ok(())
     }
 }
 
@@ -90,7 +120,7 @@ mod tests {
         // Verify other default values
         assert_eq!(config.chunk_size, 5);
         assert_eq!(config.retries, 3);
-        assert_eq!(config.timeout_seconds, 600);
+        assert_eq!(config.job_timeout_seconds, 600);
     }
 
     #[test]
@@ -101,7 +131,7 @@ mod tests {
         assert_eq!(config.server, defaults.server);
         assert_eq!(config.chunk_size, defaults.chunk_size);
         assert_eq!(config.retries, defaults.retries);
-        assert_eq!(config.timeout_seconds, defaults.timeout_seconds);
+        assert_eq!(config.job_timeout_seconds, defaults.job_timeout_seconds);
     }
 
     #[test]
@@ -114,7 +144,39 @@ mod tests {
         assert_eq!(config.retries, 7);
         assert_eq!(config.server, defaults.server);
         assert_eq!(config.chunk_size, defaults.chunk_size);
-        assert_eq!(config.timeout_seconds, defaults.timeout_seconds);
+        assert_eq!(config.job_timeout_seconds, defaults.job_timeout_seconds);
+    }
+
+    #[test]
+    fn test_plain_http_server_is_rejected() {
+        let config: UploadConfig =
+            toml::from_str("server = \"http://ctrl1.onmcu.com\"").expect("should parse");
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn test_plain_http_localhost_is_allowed() {
+        for server in [
+            "http://localhost:8080",
+            "http://127.0.0.1:8080",
+            "http://[::1]:8080",
+        ] {
+            let config: UploadConfig =
+                toml::from_str(&format!("server = \"{server}\"")).expect("should parse");
+            assert!(config.validate().is_ok(), "{server} should be allowed");
+        }
+    }
+
+    #[test]
+    fn test_chunk_size_out_of_range_is_rejected() {
+        for chunk_size in [0, 11] {
+            let config: UploadConfig =
+                toml::from_str(&format!("chunk_size = {chunk_size}")).expect("should parse");
+            assert!(
+                config.validate().is_err(),
+                "chunk_size = {chunk_size} should be rejected"
+            );
+        }
     }
 
     #[test]

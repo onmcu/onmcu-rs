@@ -54,6 +54,9 @@ pub enum CliError {
     #[error("Timed out waiting for final job status")]
     StatusUnknown,
 
+    #[error("Interrupted")]
+    Interrupted,
+
     #[error(
         "Unexpected arguments: {}\nIf a development tool added them, pass `--ignore-trailing-args` before the extra arguments to ignore them.",
         .0.join(" ")
@@ -87,6 +90,8 @@ impl CliError {
             CliError::JobTimedOut => 12,
             CliError::StatusUnknown => 13,
             CliError::UnexpectedArgs(_) => 2,
+            // 128 + SIGINT, the conventional exit code for Ctrl+C.
+            CliError::Interrupted => 130,
         };
         ExitCode::from(code)
     }
