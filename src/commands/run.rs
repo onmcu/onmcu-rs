@@ -79,7 +79,7 @@ async fn confirm_and_cancel(
     // away so SIGINT still stops the CLI in scripts and CI, where the
     // installed signal handler would otherwise make the process unkillable.
     if !std::io::stdin().is_terminal() {
-        eprintln!("Received Ctrl+C. Cancelling job...");
+        eprintln!("Received SIGINT. Cancelling job...");
         cancel_job(client, job_id).await?;
         return Ok(CancelOutcome::Cancelled);
     }
