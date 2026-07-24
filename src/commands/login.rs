@@ -35,8 +35,10 @@ pub async fn handle_login(relogin: bool) -> Result<(), LoginError> {
     // Prompt for new API key
     let prompt = "Enter your API key, it can be retrieved at https://app.onmcu.com/settings: ";
     let mut raw = if io::stdin().is_terminal() {
-        // Hidden input so the key doesn't end up on screen or in scrollback.
-        rpassword::prompt_password(prompt)?
+        let config = rpassword::ConfigBuilder::new()
+            .password_feedback_partial_mask('*', 5)
+            .build();
+        rpassword::prompt_password_with_config(prompt, config)?
     } else {
         // Piped input (scripts) has no terminal to hide; read a line as before.
         print!("{prompt}");
