@@ -11,20 +11,20 @@
 # cargo-about selects the first accepted arm, so LGPL is never chosen.
 
 accepted = [
-    "Apache-2.0",
-    "Apache-2.0 WITH LLVM-exception",
-    "BSD-2-Clause",
-    "BSD-3-Clause",
-    "BSL-1.0",
-    "CC0-1.0",
-    "CDLA-Permissive-2.0",
-    "ISC",
-    "MIT",
-    "MIT-0",
-    "MPL-2.0",
-    "Unicode-3.0",
-    "Unlicense",
-    "Zlib",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "BSL-1.0",
+  "CC0-1.0",
+  "CDLA-Permissive-2.0",
+  "ISC",
+  "MIT",
+  "MIT-0",
+  "MPL-2.0",
+  "Unicode-3.0",
+  "Unlicense",
+  "Zlib",
 ]
 
 # Dev-dependencies are not linked into the shipped binary, so their notices are
