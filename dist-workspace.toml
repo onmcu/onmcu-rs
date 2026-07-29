@@ -10,25 +10,19 @@ ci = "github"
 # The installers to generate for each app
 installers = ["shell", "powershell"]
 # Target platforms to build apps for (Rust target-triple syntax)
-targets = [
-  "aarch64-apple-darwin",
-  "aarch64-unknown-linux-gnu",
-  "x86_64-apple-darwin",
-  "x86_64-unknown-linux-gnu",
-  "x86_64-pc-windows-msvc",
-]
+targets = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"]
 # Path that installers should place binaries in
 install-path = "CARGO_HOME"
 # Where to host releases
 hosting = "github"
 # Whether to install an updater program
 install-updater = false
-# Generate GitHub artifact attestations (build provenance via actions/attest)
+# Whether to enable GitHub Attestations
 github-attestations = true
-# Extra files to bundle into every release archive (third-party attribution)
+# Extra static files to include in each App (path relative to this Cargo.toml's dir)
 include = ["THIRD-PARTY-LICENSES.html"]
 # Generate the attribution file at build time (see build-setup.yml) so it is
 # never committed yet always present for the `include` above.
 github-build-setup = "../build-setup.yml"
-# Use .gz because .xz often requires additional dependencies
+# The archive format to use for non-windows builds (defaults .tar.xz)
 unix-archive = ".tar.gz"
