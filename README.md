@@ -78,6 +78,24 @@ Every key is optional and falls back to the default shown above when omitted,
 so you only need to specify the settings that differ from the defaults. See
 [`config.example.toml`](config.example.toml) for a commented template.
 
+### Update notification
+
+The CLI checks once a day whether a newer release has been published and prints
+the matching install command when one has. The result is cached under your
+platform's cache directory (`~/.cache/onmcu/update-check.json` on Linux). The
+check is skipped when output is not a terminal and when `CI` is set, never
+delays a command by more than a second, and never makes one fail. Set
+`ONMCU_NO_UPDATE_CHECK=1` to turn it off entirely.
+
+To check on demand, run:
+
+```sh
+onmcu update
+```
+
+This ignores the cache and the settings above, and — unlike the background
+check — reports a failed lookup instead of staying quiet, exiting non-zero.
+
 ## Development
 
 This repository is the public, standalone home of the `onmcu` CLI. The
