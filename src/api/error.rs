@@ -76,16 +76,27 @@ pub enum ApiError {
     VerificationServer { status: u16 },
 }
 
+/// Supported versions that are not compatible from a semver point of view
+const EXTRA_SUPPORTED_VERSIONS: &[Version] = &[
+    //Version::new(0, 2, 0), // Temporarily supported e.g. during parallel rollout.
+];
+
+fn is_supported(
+    controller_version: &Version,
+    version_req: &VersionReq,
+    extra: Option<&[Version]>,
+) -> bool {
+    version_req.matches(&controller_version)
+        || extra.is_some_and(|extra| extra.iter().any(|version| version == controller_version))
+}
+
 /// Verify that the controller version is supported by this version of the CLI.
 ///
 /// Supported means semver-compatible with the OpenAPI spec this client was
 /// generated from, the same rule Cargo applies to crate dependencies.
-///
-/// There is no dedicated version endpoint yet, so the controller's version is
-/// read out of the `info` block of the OpenAPI document it serves. Moving to a
-/// `/version` endpoint only means replacing the request below.
 pub async fn check_controller_version(client: &AuthenticatedClient) -> Result<(), ApiError> {
-    let version_res =
+    // Retrieve controller version from version endpoint
+    let controller_version_res =
         client
             .api()
             .get_version()
@@ -96,20 +107,32 @@ pub async fn check_controller_version(client: &AuthenticatedClient) -> Result<()
                 message: format!("Could not reach controller version endpoint. {e}"),
             })?;
 
-    let version = version_res.as_str();
+    // Parse returned version
+    let controller_version = Version::parse(&controller_version_res).map_err(|e| {
+        ApiError::Other(format!(
+            "Could not parse controller version response as a semver version: '{}'. {e}",
+            controller_version_res.as_str()
+        ))
+    })?;
 
-    let version = Version::parse(&version)
-        .map_err(|e| ApiError::Other(format!("Controller reported version {version}: {e}")))?;
-    let supported = VersionReq::parse(&format!("^{}", generated::Client::api_version()))
-        .expect("generated client is versioned with valid semver");
+    // Obtain version that was used to generate this progenitor client
+    let client_version = generated::Client::api_version();
 
-    if !supported.matches(&version) {
-        return Err(ApiError::UnsupportedServerVersion {
-            server_version: version,
-            supported_versions: supported,
-        });
+    // Turn the client_version into a semver version requirement
+    let version_req = VersionReq::parse(&format!("^{client_version}")).unwrap();
+
+    if is_supported(
+        &controller_version,
+        &version_req,
+        Some(EXTRA_SUPPORTED_VERSIONS),
+    ) {
+        Ok(())
+    } else {
+        Err(ApiError::UnsupportedServerVersion {
+            server_version: controller_version,
+            supported_versions: version_req,
+        })
     }
-    Ok(())
 }
 
 /// Verify that the API key is accepted by the controller.
@@ -167,5 +190,51 @@ impl From<ClientError> for ApiError {
                 other => ApiError::Other(other.to_string()),
             },
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use semver::{Version, VersionReq};
+
+    use crate::api::error::is_supported;
+
+    #[test]
+    fn check_supported_versions() {
+        assert!(
+            is_supported(
+                &Version::new(0, 1, 2),
+                &VersionReq::parse("^0.1.0").unwrap(),
+                None
+            ),
+            "should support patch bump"
+        );
+
+        assert!(
+            is_supported(
+                &Version::new(1, 1, 2),
+                &VersionReq::parse("^1.0.0").unwrap(),
+                None
+            ),
+            "should support minor and patch bump with major >0"
+        );
+
+        assert!(
+            !is_supported(
+                &Version::new(0, 2, 0),
+                &VersionReq::parse("^0.1.0").unwrap(),
+                None
+            ),
+            "should not support minor bump"
+        );
+
+        assert!(
+            is_supported(
+                &Version::new(0, 2, 0),
+                &VersionReq::parse("^0.1.0").unwrap(),
+                Some(&[Version::new(0, 2, 0)])
+            ),
+            "should support extra version"
+        );
     }
 }
