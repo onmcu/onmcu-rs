@@ -1,0 +1,27 @@
+src/api/error.rs
+  s_961639618620ec::t_fe363f47e55c3b 18
+  s_961639618620ec::t_18f870d943a98d 58,61-62
+  s_961639618620ec::t_b0568bb1185b4a 14
+  s_961639618620ec::t_ade36d097be003 99-103,116-117
+  s_961639618620ec::t_aeb44345617258 114-115,118-119,121-122
+Cargo.toml
+  s_961639618620ec::t_532865d44a4077 28
+Cargo.lock
+  s_961639618620ec::t_f9105411d891ea 1247
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "d590ae9817932fd979fcd3f2d2e05945044f41b5",
+  "prompts": {},
+  "sessions": {
+    "s_961639618620ec": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7ef647a1-6fa2-4c00-86a0-cdb64c814658",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "JuliDi <julian@systemscape.de>"
+    }
+  }
+}
