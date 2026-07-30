@@ -64,7 +64,8 @@ pub enum ApiError {
 
     #[error(
         "Could not reach the OnMCU server at {server_url}.\n\
-         Check your internet connection and the server URL. ({message})"
+         Check your internet connection and the server URL.\n\
+         Details: {message}"
     )]
     VerificationTransport { server_url: String, message: String },
 
@@ -73,25 +74,6 @@ pub enum ApiError {
          verifying your API key. Please try again later."
     )]
     VerificationServer { status: u16 },
-}
-
-/// Verify that the controller is reachable at all.
-///
-/// Any HTTP response counts as reachable — the status is irrelevant here, the
-/// later checks judge what the server actually answered. The response body is
-/// dropped without being read.
-pub async fn check_connectivity(client: &AuthenticatedClient) -> Result<(), ApiError> {
-    client
-        .api_client
-        .client
-        .get(&client.api_client.baseurl)
-        .send()
-        .await
-        .map(|_| ())
-        .map_err(|err| ApiError::VerificationTransport {
-            server_url: client.api_client.baseurl.clone(),
-            message: err.to_string(),
-        })
 }
 
 /// Verify that the controller version is supported by this version of the CLI.
@@ -103,15 +85,20 @@ pub async fn check_connectivity(client: &AuthenticatedClient) -> Result<(), ApiE
 /// read out of the `info` block of the OpenAPI document it serves. Moving to a
 /// `/version` endpoint only means replacing the request below.
 pub async fn check_controller_version(client: &AuthenticatedClient) -> Result<(), ApiError> {
-    let spec = client.api().get_openapi().send().await?;
+    let version_res =
+        client
+            .api()
+            .get_version()
+            .send()
+            .await
+            .map_err(|e| ApiError::VerificationTransport {
+                server_url: client.api_client.baseurl.clone(),
+                message: format!("Could not reach controller version endpoint. {e}"),
+            })?;
 
-    let Some(version) = spec["info"]["version"].as_str() else {
-        return Err(ApiError::Other(
-            "Controller OpenAPI specification contains no version string".into(),
-        ));
-    };
+    let version = version_res.as_str();
 
-    let version = Version::parse(version)
+    let version = Version::parse(&version)
         .map_err(|e| ApiError::Other(format!("Controller reported version {version}: {e}")))?;
     let supported = VersionReq::parse(&format!("^{}", generated::Client::api_version()))
         .expect("generated client is versioned with valid semver");

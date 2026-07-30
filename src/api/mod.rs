@@ -3,7 +3,7 @@ pub mod generated;
 pub mod interface;
 pub mod types;
 
-pub use error::{ApiError, check_connectivity, check_controller_version, verify_access};
+pub use error::{ApiError, check_controller_version, verify_access};
 pub use types::AuthError;
 pub use types::AuthenticatedClient;
 pub use types::{ApiKeyFormatError, validate_api_key};
@@ -17,7 +17,6 @@ pub async fn get_authenticated_client(
     api_key_from_env: bool,
 ) -> Result<AuthenticatedClient, CliError> {
     let client = AuthenticatedClient::new_with_api_key(server_url, api_key_from_env)?;
-    check_connectivity(&client).await?;
     check_controller_version(&client).await?;
     verify_access(&client).await?;
     Ok(client)

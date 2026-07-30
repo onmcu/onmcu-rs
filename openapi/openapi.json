@@ -627,8 +627,28 @@
           },
           {
             "in": "query",
+            "name": "direction",
+            "description": "Sort direction (default: `desc`)",
+            "schema": {
+              "$ref": "#/components/schemas/SortDirection"
+            }
+          },
+          {
+            "in": "query",
             "name": "limit",
-            "description": "Maximum number of results to return (default: 1000)",
+            "description": "Maximum number of items to return (1-100, default: 50)",
+            "schema": {
+              "nullable": true,
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "description": "Number of items to skip (default: 0)",
             "schema": {
               "nullable": true,
               "type": "integer",
@@ -638,13 +658,10 @@
           },
           {
             "in": "query",
-            "name": "offset",
-            "description": "Number of results to skip (default: 0)",
+            "name": "order_by",
+            "description": "Column to sort by (endpoint default)",
             "schema": {
-              "nullable": true,
-              "type": "integer",
-              "format": "uint32",
-              "minimum": 0
+              "$ref": "#/components/schemas/JobSortColumn"
             }
           }
         ],
@@ -654,11 +671,64 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "title": "Array_of_AdminJob",
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AdminJob"
-                  }
+                  "$ref": "#/components/schemas/PaginatedResponse_for_AdminJob"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/job/{id}": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get any job by UUID (no ownership check)",
+        "operationId": "admin_get_job",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "description": "OIDC Access Token for this user. Currently only used internally to authenticate the user with the controller when using the webapp.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-API-Key",
+            "description": "API Key as generated in the webapp.",
+            "schema": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "description": "The actual UUID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminJob"
                 }
               }
             }
@@ -2346,6 +2416,31 @@
           }
         }
       }
+    },
+    "/version": {
+      "get": {
+        "summary": "Get API (or Controller) version as string",
+        "operationId": "get_version",
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "String",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "$ref": "#/components/responses/Error"
+          },
+          "5XX": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2509,10 +2604,9 @@
         "description": "Job info for admin view",
         "type": "object",
         "properties": {
-          "board_id": {
+          "board_name": {
             "description": "Board ID",
-            "type": "integer",
-            "format": "int64"
+            "type": "string"
           },
           "device_id": {
             "nullable": true,
@@ -2525,15 +2619,6 @@
             "description": "When the job ended",
             "type": "string",
             "format": "date-time"
-          },
-          "exit_status": {
-            "nullable": true,
-            "description": "Exit status",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ExitStatus"
-              }
-            ]
           },
           "id": {
             "description": "Database primary key",
@@ -2555,10 +2640,10 @@
             "format": "date-time"
           },
           "status": {
-            "description": "Job status",
+            "description": "Job status, with the terminal outcome folded in",
             "allOf": [
               {
-                "$ref": "#/components/schemas/JobStatus"
+                "$ref": "#/components/schemas/JobStatusView"
               }
             ]
           },
@@ -2572,11 +2657,9 @@
             "type": "integer",
             "format": "int64"
           },
-          "user_uuid": {
-            "nullable": true,
-            "description": "User UUID who submitted the job",
-            "type": "string",
-            "format": "uuid"
+          "user_name": {
+            "description": "User Name who submitted the job",
+            "type": "string"
           },
           "uuid": {
             "description": "Job UUID",
@@ -2585,12 +2668,13 @@
           }
         },
         "required": [
-          "board_id",
+          "board_name",
           "id",
           "priority",
           "status",
           "submission_time",
           "user_id",
+          "user_name",
           "uuid"
         ]
       },
@@ -2963,39 +3047,6 @@
           "request_id"
         ]
       },
-      "ExitStatus": {
-        "description": "Terminal outcome of a finished job.",
-        "oneOf": [
-          {
-            "description": "Job completed successfully (exit code 0 or equivalent).",
-            "type": "string",
-            "enum": [
-              "FinishedSuccessfully"
-            ]
-          },
-          {
-            "description": "Job ran to completion but indicated failure.",
-            "type": "string",
-            "enum": [
-              "FinishedUnsuccessfully"
-            ]
-          },
-          {
-            "description": "Job was cancelled by the user.",
-            "type": "string",
-            "enum": [
-              "Canceled"
-            ]
-          },
-          {
-            "description": "Job was cancelled by the system due to timeout.",
-            "type": "string",
-            "enum": [
-              "Timeout"
-            ]
-          }
-        ]
-      },
       "FlashTool": {
         "description": "Which flash tool to invoke for a job.",
         "oneOf": [
@@ -3182,39 +3233,6 @@
           "total"
         ]
       },
-      "JobStatus": {
-        "description": "Lifecycle status of a job.",
-        "oneOf": [
-          {
-            "description": "Submitted but not yet assigned to an edge server.",
-            "type": "string",
-            "enum": [
-              "Pending"
-            ]
-          },
-          {
-            "description": "Sent to an edge server; waiting for the edge server to start it.",
-            "type": "string",
-            "enum": [
-              "Dispatched"
-            ]
-          },
-          {
-            "description": "Currently running on an edge server.",
-            "type": "string",
-            "enum": [
-              "Running"
-            ]
-          },
-          {
-            "description": "Finished (see [`ExitStatus`] for the outcome).",
-            "type": "string",
-            "enum": [
-              "Finished"
-            ]
-          }
-        ]
-      },
       "JobStatusView": {
         "description": "The status of a job in the system.",
         "oneOf": [
@@ -3387,6 +3405,29 @@
           }
         ]
       },
+      "PaginatedResponse_for_AdminJob": {
+        "description": "Paginated response wrapper for list endpoints",
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "The items on this page",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminJob"
+            }
+          },
+          "total_count": {
+            "description": "Total number of items across all pages",
+            "type": "integer",
+            "format": "uint32",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "items",
+          "total_count"
+        ]
+      },
       "PaginatedResponse_for_BoardInfo": {
         "description": "Paginated response wrapper for list endpoints",
         "type": "object",
@@ -3530,7 +3571,8 @@
             "default": 115200,
             "type": "integer",
             "format": "uint32",
-            "minimum": 0
+            "minimum": 9600,
+            "maximum": 1843200
           }
         },
         "additionalProperties": false
