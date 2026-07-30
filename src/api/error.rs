@@ -86,7 +86,7 @@ fn is_supported(
     version_req: &VersionReq,
     extra: Option<&[Version]>,
 ) -> bool {
-    version_req.matches(&controller_version)
+    version_req.matches(controller_version)
         || extra.is_some_and(|extra| extra.iter().any(|version| version == controller_version))
 }
 
