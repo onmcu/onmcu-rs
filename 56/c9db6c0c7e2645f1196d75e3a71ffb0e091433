@@ -1,0 +1,19 @@
+.github/workflows/pr-title.yml
+  s_2864b6008a01a9::t_9bd2a12fee0381 1-46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.18",
+  "base_commit_sha": "56c9db6c0c7e2645f1196d75e3a71ffb0e091433",
+  "prompts": {},
+  "sessions": {
+    "s_2864b6008a01a9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "87e4d5b1-8668-455f-b907-e83a4a99389a",
+        "model": "claude-opus-5"
+      },
+      "human_author": "JuliDi <julian@systemscape.de>"
+    }
+  }
+}
