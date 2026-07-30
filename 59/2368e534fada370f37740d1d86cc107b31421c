@@ -1,0 +1,24 @@
+CHANGELOG.md
+  s_2864b6008a01a9::t_351e2ba8aa5e34 1-42
+.github/workflows/release-plz.yml
+  s_2864b6008a01a9::t_575504a740bd97 1-71
+release-plz.toml
+  s_2864b6008a01a9::t_41838e8c874ce5 33-37,44,49
+  s_2864b6008a01a9::t_a2d11df8c2f3de 1-32,38-43,45-48,50
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.18",
+  "base_commit_sha": "592368e534fada370f37740d1d86cc107b31421c",
+  "prompts": {},
+  "sessions": {
+    "s_2864b6008a01a9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "87e4d5b1-8668-455f-b907-e83a4a99389a",
+        "model": "claude-opus-5"
+      },
+      "human_author": "JuliDi <julian@systemscape.de>"
+    }
+  }
+}
