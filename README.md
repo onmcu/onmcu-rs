@@ -93,8 +93,8 @@ To check on demand, run:
 onmcu update
 ```
 
-This ignores the cache and the settings above, and — unlike the background
-check — reports a failed lookup instead of staying quiet, exiting non-zero.
+This ignores the cache and the settings above, and reports a failed lookup
+instead of staying quiet, exiting non-zero.
 
 ## Development
 
