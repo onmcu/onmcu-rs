@@ -1,10 +1,18 @@
 version: 2
+# The commit-message prefixes are set explicitly rather than left to
+# Dependabot's convention auto-detection: the PR title becomes the squash
+# commit subject, which pr-title.yml lints and release-plz turns into
+# CHANGELOG.md entries. Cargo bumps land under `chore(deps)`; Actions bumps
+# under `ci(deps)`, so the changelog can drop CI-only noise.
 updates:
   - package-ecosystem: cargo
     directory: "/"
     schedule:
-      interval: weekly
+      interval: monthly
     open-pull-requests-limit: 10
+    commit-message:
+      prefix: chore
+      include: scope
     groups:
       cargo-minor-and-patch:
         update-types:
@@ -14,7 +22,10 @@ updates:
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
-      interval: weekly
+      interval: monthly
     open-pull-requests-limit: 5
     exclude-paths:
       - ".github/workflows/release.yml"
+    commit-message:
+      prefix: ci
+      include: scope

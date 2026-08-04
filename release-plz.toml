@@ -1,0 +1,50 @@
+[workspace]
+# Release only when the release PR merges, not on every push to main.
+# Required under squash merging: release-plz cannot find the PR's original
+# commit after a squash, and would otherwise release whatever main is at.
+# Detected via the `release-plz-` branch prefix.
+release_always = false
+
+# `cargo publish` stays with publish-crates.yml, which chains off a
+# successful dist run so crates.io only receives versions whose binaries
+# actually built.
+publish = false
+
+# dist's `announce` job runs `gh release create` for the tag; letting
+# release-plz create the GitHub Release too would collide with it.
+# release-plz's job is the tag and the changelog, nothing else.
+git_release_enable = false
+git_tag_enable = true
+
+# Matches the existing v0.1.0 / v0.0.1 tags and release.yml's tag filter.
+git_tag_name = "v{{ version }}"
+
+[changelog]
+# Keep entries for breaking changes even when a parser below would skip them.
+protect_breaking_commits = true
+
+# `header` and `body` are left at release-plz's defaults, which emit
+# `## [x.y.z] - date` headings: the form dist's parse-changelog matches
+# when filling the GitHub Release body.
+
+# First match wins, so the two dependency rules must precede the catch-all
+# skip under them. The merge-commit rule covers history from before the repo
+# moved to squash-only merges.
+#
+# These cover exactly the types pr-title.yml accepts. MUST keep the two lists in
+# sync, because the final `.*` rule drops anything unmatched. Without it,
+# git-cliff emits unmatched commits ungrouped, which would fill the changelog
+# with the pre-lint history ("Update README.md", "Run rustfmt", ...).
+commit_parsers = [
+  { message = '^feat', group = "Added" },
+  { message = '^fix', group = "Fixed" },
+  { message = '^perf', group = "Performance" },
+  { message = '^refactor', group = "Changed" },
+  { message = '^docs', group = "Documentation" },
+  { message = '^revert', group = "Reverted" },
+  { message = '^chore\(deps\)', group = "Dependencies" },
+  { message = '^ci\(deps\)', skip = true },
+  { message = '^(chore|ci|style|test|build)', skip = true },
+  { message = '^Merge (pull request|branch|remote-tracking)', skip = true },
+  { message = '.*', skip = true },
+]
