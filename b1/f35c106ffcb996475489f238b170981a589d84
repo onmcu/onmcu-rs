@@ -1,0 +1,14 @@
+src/update_check.rs
+  h_2e4fad1f0ddac3 327-332
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "b1f35c106ffcb996475489f238b170981a589d84",
+  "prompts": {},
+  "humans": {
+    "h_2e4fad1f0ddac3": {
+      "author": "JuliDi <julian@systemscape.de>"
+    }
+  }
+}
