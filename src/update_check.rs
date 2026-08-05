@@ -324,8 +324,12 @@ fn cache_path() -> Option<PathBuf> {
         PathBuf::from(std::env::var_os("HOME")?).join("Library/Caches")
     } else {
         match std::env::var_os("XDG_CACHE_HOME") {
-            Some(dir) => PathBuf::from(dir),
-            None => PathBuf::from(std::env::var_os("HOME")?).join(".cache"),
+            // Treat empty as unset.
+            // See >https://specifications.freedesktop.org/basedir/latest/#variables>
+            // "If $XDG_CACHE_HOME is either not set or empty, a default equal
+            // to $HOME/.cache should be used."
+            Some(dir) if dir.len() > 0 => PathBuf::from(dir),
+            _ => PathBuf::from(std::env::var_os("HOME")?).join(".cache"),
         }
     };
     Some(dir.join("onmcu").join("update-check.json"))
