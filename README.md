@@ -81,8 +81,10 @@ so you only need to specify the settings that differ from the defaults. See
 ### Update notification
 
 The CLI checks once a day whether a newer release has been published and prints
-the matching install command when one has. The result is cached under your
-platform's cache directory (`~/.cache/onmcu/update-check.json` on Linux). The
+the matching install command when one has. The result is cached in
+`$XDG_CACHE_HOME/onmcu/update-check.json`, which defaults to
+`~/.cache/onmcu/update-check.json` on Linux and macOS, and lives under
+`%LOCALAPPDATA%` on Windows. The
 check is skipped when output is not a terminal and when `CI` is set, never
 delays a command by more than a second, and never makes one fail. Set
 `ONMCU_NO_UPDATE_CHECK=1` to turn it off entirely.

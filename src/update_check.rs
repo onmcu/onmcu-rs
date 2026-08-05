@@ -2,7 +2,7 @@
 //!
 //! [`spawn`] runs the lookup in the background of every command: cached, and
 //! silent about failures. [`check_now`] backs the `update` subcommand: no
-//! cache, no opt-outs, and failures are reported.
+//! cache, no opt-outs; failures are reported.
 //!
 //! The version comes from the `dist-manifest.json` cargo-dist publishes with
 //! every release, served from the release download URL rather than
@@ -15,6 +15,7 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
+use etcetera::{BaseStrategy as _, base_strategy::choose_base_strategy};
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -34,14 +35,14 @@ const MANIFEST_URL: &str = concat!(
 const USER_AGENT: &str = concat!("onmcu/", env!("CARGO_PKG_VERSION"));
 
 /// How long a fetched version stays valid before the network is consulted again.
-const CACHE_TTL: Duration = Duration::from_secs(24 * 60 * 60);
+const CACHE_TTL: Duration = Duration::from_hours(24);
 
 /// How long to wait before retrying after a lookup that produced no version.
 ///
 /// Shorter than [`CACHE_TTL`] because the next attempt may well succeed, but
 /// long enough that a blocked network costs one attempt an hour rather than one
 /// per command.
-const RETRY_TTL: Duration = Duration::from_secs(60 * 60);
+const RETRY_TTL: Duration = Duration::from_hours(1);
 
 /// Cap on the whole HTTP request, so a black-holed connection cannot stall the
 /// CLI for the default reqwest timeout. Commands that outlive
@@ -309,25 +310,18 @@ impl Cache {
     }
 }
 
-/// Per-user cache file, following each platform's convention.
+/// Per-user cache file.
+///
+/// `choose_base_strategy` means XDG on macOS too, not `~/Library/Caches`: a CLI
+/// is expected to honour `XDG_CACHE_HOME` wherever it runs.
 ///
 /// Deliberately not the config directory that holds the cargo-dist install
 /// receipt: this file is derived data and may be deleted at any time.
 fn cache_path() -> Option<PathBuf> {
-    let dir = if cfg!(windows) {
-        PathBuf::from(std::env::var_os("LOCALAPPDATA")?)
-    } else if cfg!(target_os = "macos") {
-        PathBuf::from(std::env::var_os("HOME")?).join("Library/Caches")
-    } else {
-        match std::env::var_os("XDG_CACHE_HOME") {
-            // Treat empty as unset.
-            // See >https://specifications.freedesktop.org/basedir/latest/#variables>
-            // "If $XDG_CACHE_HOME is either not set or empty, a default equal
-            // to $HOME/.cache should be used."
-            Some(dir) if !dir.is_empty() => PathBuf::from(dir),
-            _ => PathBuf::from(std::env::var_os("HOME")?).join(".cache"),
-        }
-    };
+    let dir = choose_base_strategy()
+        .inspect_err(|e| tracing::debug!("Could not locate the cache directory: {e}"))
+        .ok()?
+        .cache_dir();
     Some(dir.join("onmcu").join("update-check.json"))
 }
 
