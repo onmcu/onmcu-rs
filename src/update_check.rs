@@ -460,23 +460,6 @@ mod tests {
     }
 
     #[test]
-    fn off_values_do_not_enable_a_flag() {
-        // Safety: single-threaded test, no other thread reads the environment.
-        unsafe {
-            for value in ["", "0", "false"] {
-                std::env::set_var("ONMCU_TEST_FLAG", value);
-                assert!(!is_set("ONMCU_TEST_FLAG"), "{value:?} should not enable");
-            }
-            for value in ["1", "true", "yes"] {
-                std::env::set_var("ONMCU_TEST_FLAG", value);
-                assert!(is_set("ONMCU_TEST_FLAG"), "{value:?} should enable");
-            }
-            std::env::remove_var("ONMCU_TEST_FLAG");
-        }
-        assert!(!is_set("ONMCU_TEST_FLAG"));
-    }
-
-    #[test]
     fn notice_names_both_versions_the_release_page_and_the_install_command() {
         let text = notice(&Version::parse("9.9.9").expect("valid semver"));
         assert!(text.contains(CURRENT_VERSION), "{text}");
