@@ -28,10 +28,10 @@ cargo install onmcu --locked
 Download the archive matching your platform from the
 [latest release](https://github.com/onmcu/onmcu-rs/releases/latest):
 
-- Linux x86_64: `onmcu-x86_64-unknown-linux-gnu.tar.xz`
-- Linux aarch64: `onmcu-aarch64-unknown-linux-gnu.tar.xz`
-- macOS Apple Silicon: `onmcu-aarch64-apple-darwin.tar.xz`
-- macOS Intel: `onmcu-x86_64-apple-darwin.tar.xz`
+- Linux x86_64: `onmcu-x86_64-unknown-linux-gnu.tar.gz`
+- Linux aarch64: `onmcu-aarch64-unknown-linux-gnu.tar.gz`
+- macOS Apple Silicon: `onmcu-aarch64-apple-darwin.tar.gz`
+- macOS Intel: `onmcu-x86_64-apple-darwin.tar.gz`
 - Windows x86_64: `onmcu-x86_64-pc-windows-msvc.zip`
 
 ## Usage
