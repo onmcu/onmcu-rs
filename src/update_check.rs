@@ -328,7 +328,7 @@ fn cache_path() -> Option<PathBuf> {
             // See >https://specifications.freedesktop.org/basedir/latest/#variables>
             // "If $XDG_CACHE_HOME is either not set or empty, a default equal
             // to $HOME/.cache should be used."
-            Some(dir) if dir.len() > 0 => PathBuf::from(dir),
+            Some(dir) if !dir.is_empty() => PathBuf::from(dir),
             _ => PathBuf::from(std::env::var_os("HOME")?).join(".cache"),
         }
     };
