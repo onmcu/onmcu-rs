@@ -106,7 +106,13 @@ pub struct UpdateCheck(Option<JoinHandle<Option<Version>>>);
 /// `command_checks_itself` suppresses it for commands that do their own lookup,
 /// keeping every reason to skip the check in one place.
 pub fn spawn(command_checks_itself: bool) -> UpdateCheck {
-    if command_checks_itself || !is_enabled() {
+    // Nothing reads the notice when output is piped or redirected, and CI
+    // runners would repeat the lookup for every job.
+    if command_checks_itself
+        || !std::io::stderr().is_terminal()
+        || is_set("ONMCU_NO_UPDATE_CHECK")
+        || is_set("CI")
+    {
         return UpdateCheck(None);
     }
     UpdateCheck(Some(tokio::spawn(check())))
@@ -127,16 +133,6 @@ impl UpdateCheck {
             Err(_) => tracing::debug!("Update check did not finish within {REPORT_BUDGET:?}"),
         }
     }
-}
-
-/// Whether the check should run at all.
-fn is_enabled() -> bool {
-    // Nothing reads the notice when output is piped or redirected, and CI
-    // runners would repeat the lookup for every job.
-    if !std::io::stderr().is_terminal() {
-        return false;
-    }
-    !(is_set("ONMCU_NO_UPDATE_CHECK") || is_set("CI"))
 }
 
 /// True when `name` is present in the environment and not set to an "off" value.
