@@ -335,7 +335,7 @@ fn now_unix() -> u64 {
 /// The message shown when a newer release exists.
 pub fn notice(latest: &Version) -> String {
     format!(
-        "\nA new version of onmcu is available: {CURRENT_VERSION} -> {latest}\n\
+        "A new version of onmcu is available: {CURRENT_VERSION} -> {latest}\n\
          Release notes: {RELEASE_PAGE_URL}\n\
          Update with:\n  {UPDATE_COMMAND}\n"
     )
