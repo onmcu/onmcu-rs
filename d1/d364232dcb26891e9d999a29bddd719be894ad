@@ -1,0 +1,40 @@
+Cargo.toml
+  h_2e4fad1f0ddac3 78-82
+dist-workspace.toml
+  h_2e4fad1f0ddac3 13-19
+src/api/error.rs
+  h_2e4fad1f0ddac3 97-105,131-132,149-153,165,190-192,195,204-205
+src/api/generated.rs
+  h_2e4fad1f0ddac3 2
+src/api/interface.rs
+  h_2e4fad1f0ddac3 18-20,23,39,44
+src/api/mod.rs
+  h_2e4fad1f0ddac3 15-18
+src/api/types.rs
+  h_2e4fad1f0ddac3 52-54,85-88,100-102,115,122-123
+src/cli.rs
+  h_2e4fad1f0ddac3 30-33,38-42,81,93-94,109,139,156
+src/commands/login.rs
+  h_2e4fad1f0ddac3 25
+src/commands/run.rs
+  h_2e4fad1f0ddac3 136-138,169,242,272,313
+src/error.rs
+  h_2e4fad1f0ddac3 80,83-100,102,109
+src/keyring.rs
+  h_2e4fad1f0ddac3 34-35,44-45,50-51,70
+src/update_check.rs
+  h_2e4fad1f0ddac3 141,208-211,288,337
+src/upload/uploader.rs
+  h_2e4fad1f0ddac3 27,204,248,272
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "d1d364232dcb26891e9d999a29bddd719be894ad",
+  "prompts": {},
+  "humans": {
+    "h_2e4fad1f0ddac3": {
+      "author": "JuliDi <julian@systemscape.de>"
+    }
+  }
+}
