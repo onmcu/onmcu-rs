@@ -31,6 +31,9 @@ const POLL_INTERVAL: Duration = Duration::from_secs(1);
 /// Delay before the first status poll, kept short for quick initial feedback.
 const INITIAL_POLL_DELAY: Duration = Duration::from_millis(100);
 
+/// Idle time on the log stream before sending a keep-alive ping.
+const PING_IDLE_TIMEOUT: Duration = Duration::from_secs(30);
+
 /// Result of prompting the user to cancel a job after Ctrl+C.
 enum CancelOutcome {
     /// User confirmed; the cancellation request was sent successfully.
@@ -112,44 +115,56 @@ async fn poll_job_status(
     Ok(job.into_inner().status)
 }
 
-/// Handle the `run` command: check board and delegate to upload
-pub async fn handle_run(
-    cfg: UploadConfig,
+/// Map a terminal failure status to its CLI error; `None` for anything else.
+const fn job_failure(status: JobStatusView) -> Option<CliError> {
+    match status {
+        JobStatusView::Failed => Some(CliError::JobFailed),
+        JobStatusView::Cancelled => Some(CliError::JobCancelled),
+        JobStatusView::Timeout => Some(CliError::JobTimedOut),
+        _ => None,
+    }
+}
+
+/// Resolve the requested board name to its MPN.
+///
+/// On failure, list the available boards so the user can correct the name.
+async fn resolve_board(
+    client: &AuthenticatedClient,
     requested_board: String,
-    file_path: PathBuf,
-    api_key_from_env: bool,
-    wait_timeout: u64,
-    logging_config: crate::api::generated::types::LoggingConfig,
-) -> Result<(), CliError> {
-    let client = get_authenticated_client(&cfg.server, api_key_from_env).await?;
-
+) -> Result<String, CliError> {
     info!("Getting list of boards...");
-    let board_list = fetch_all_boards(&client).await?;
-
+    let board_list = fetch_all_boards(client).await?;
     debug!("Got list of boards {:?}", board_list);
 
-    // Check if board is supported
-    let Some(board_mpn) =
-        find_board(&requested_board, board_list.iter()).map(|board| board.board_mpn.clone())
-    else {
-        info!("Available boards:");
-        for board in board_list {
-            info!("  {}", board.board_mpn);
-        }
+    if let Some(board) = find_board(&requested_board, board_list.iter()) {
+        return Ok(board.board_mpn.clone());
+    }
 
-        return Err(CliError::BoardNotFound(requested_board));
-    };
+    eprintln!("Available boards:");
+    for board in board_list {
+        eprintln!("  {}", board.board_mpn);
+    }
+    Err(CliError::BoardNotFound(requested_board))
+}
 
-    info!("Running upload for board: {}", board_mpn);
+/// Result of waiting for a submitted job to leave the queue.
+enum JobStartOutcome {
+    /// The job is running; logs can be streamed.
+    Running,
+    /// The job finished before log streaming could start.
+    FinishedEarly,
+}
 
-    let job_id = submit_job(file_path, board_mpn, &cfg, &client, logging_config).await?;
-
-    info!("Submitted file for Job ID {job_id}");
-
-    // Wait for the job to start running before streaming logs.
-    // The server rejects WebSocket upgrades for non-running jobs (409 Conflict).
+/// Wait for the job to start running before streaming logs.
+///
+/// The server rejects WebSocket upgrades for non-running jobs (409 Conflict).
+/// On timeout, prompt to keep waiting or cancel the pending job.
+async fn wait_for_job_start(
+    client: &AuthenticatedClient,
+    job_id: Uuid,
+    max_wait: Duration,
+) -> Result<JobStartOutcome, CliError> {
     eprint!("⏳ Waiting for job to start...");
-    let max_wait = Duration::from_secs(wait_timeout);
     'wait: loop {
         let deadline = tokio::time::Instant::now() + max_wait;
         let mut poll_delay = INITIAL_POLL_DELAY;
@@ -159,7 +174,7 @@ pub async fn handle_run(
             // poll request is in flight.
             tokio::select! {
                 _ = tokio::signal::ctrl_c() => {
-                    match confirm_and_cancel(&client, job_id).await? {
+                    match confirm_and_cancel(client, job_id).await? {
                         CancelOutcome::Cancelled => return Err(CliError::JobCancelled),
                         CancelOutcome::Resumed => {
                             eprint!("⏳ Waiting for job to start...");
@@ -185,31 +200,36 @@ pub async fn handle_run(
 
                     // Cancel the pending job so it doesn't sit in the queue
                     info!("Cancelling pending job...");
-                    cancel_job(&client, job_id).await?;
+                    cancel_job(client, job_id).await?;
                     return Err(CliError::NoDeviceAvailable);
                 }
-                status = poll_job_status(&client, job_id, poll_delay) => {
+                status = poll_job_status(client, job_id, poll_delay) => {
                     poll_delay = POLL_INTERVAL;
                     match status? {
                         JobStatusView::Running => {
                             eprintln!(" started!");
-                            break 'wait;
+                            return Ok(JobStartOutcome::Running);
                         }
                         JobStatusView::Completed => {
                             eprintln!(" completed before log streaming could start");
-                            return Ok(());
+                            return Ok(JobStartOutcome::FinishedEarly);
                         }
-                        JobStatusView::Failed => return Err(CliError::JobFailed),
-                        JobStatusView::Cancelled => return Err(CliError::JobCancelled),
-                        JobStatusView::Timeout => return Err(CliError::JobTimedOut),
-                        // Still pending/dispatched — keep waiting
-                        _ => eprint!("."),
+                        status => match job_failure(status) {
+                            Some(e) => return Err(e),
+                            // Still pending/dispatched: keep waiting
+                            None => eprint!("."),
+                        },
                     }
                 }
             }
         }
     }
+}
 
+/// Stream job logs over the WebSocket until the stream ends or the user
+/// cancels. Stream errors are not fatal; the final status poll decides the
+/// outcome.
+async fn stream_logs(client: &AuthenticatedClient, job_id: Uuid) -> Result<(), CliError> {
     // Creates a GET request, upgrades and sends it.
     let response = client
         .api()
@@ -229,53 +249,48 @@ pub async fn handle_run(
     loop {
         tokio::select! {
             _ = tokio::signal::ctrl_c() => {
-                match confirm_and_cancel(&client, job_id).await? {
-                    // Let the final-status poll below confirm the outcome.
+                match confirm_and_cancel(client, job_id).await? {
+                    // Let the final-status poll confirm the outcome.
                     CancelOutcome::Cancelled => break,
                     CancelOutcome::Resumed => {
                         info!("Job cancellation aborted, continuing to stream logs...");
                     }
                 }
             }
-            // Wait for the next message or timeout
-            res = timeout(Duration::from_secs(30), websocket.try_next()) => {
-                if let Ok(message_result) = res {
-                        // A stream error is not necessarily a job failure, so
-                        // stop reading logs and let the final-status poll decide
-                        // the outcome rather than failing outright here.
-                        let message = match message_result {
-                            Ok(message) => message,
-                            Err(e) => {
-                                error!(%e, "Log stream error; checking final job status");
-                                break;
-                            }
-                        };
-                        match message {
-                            Some(Message::Text(text)) => {
-                                println!("{text}");
-                            }
-                            Some(Message::Ping(_)) => {
-                                debug!("Received Ping");
-                            }
-                            Some(Message::Pong(_)) => {
-                                debug!("Received Pong");
-                            }
-                            Some(Message::Close(frame)) => {
-                                if let Some(frame) = frame {
-                                    eprintln!("Connection closed: {}", frame.reason);
-                                }
-                                break;
-                            }
-                            Some(_) => {}   // Handle other message types if needed
-                            None => break,  // WebSocket stream ended
+            // Wait for the next message or the keep-alive deadline
+            res = timeout(PING_IDLE_TIMEOUT, websocket.try_next()) => {
+                match res {
+                    Ok(Ok(Some(Message::Text(text)))) => println!("{text}"),
+                    Ok(Ok(Some(Message::Ping(_)))) => debug!("Received Ping"),
+                    Ok(Ok(Some(Message::Pong(_)))) => debug!("Received Pong"),
+                    Ok(Ok(Some(Message::Close(frame)))) => {
+                        if let Some(frame) = frame {
+                            eprintln!("Connection closed: {}", frame.reason);
                         }
-                } else {
-                        debug!("No message received for 30 seconds, sending ping...");
+                        break;
+                    }
+                    Ok(Ok(Some(other))) => debug!("Ignoring message: {other:?}"),
+                    // WebSocket stream ended
+                    Ok(Ok(None)) => break,
+                    // A stream error is not necessarily a job failure, so
+                    // stop reading logs and let the final status poll decide
+                    // the outcome rather than failing outright here.
+                    Ok(Err(e)) => {
+                        error!(%e, "Log stream error; checking final job status");
+                        break;
+                    }
+                    // No message for a while: check the connection with a ping.
+                    Err(_elapsed) => {
+                        debug!(
+                            "No message received for {}s, sending ping...",
+                            PING_IDLE_TIMEOUT.as_secs()
+                        );
                         let res = websocket.send(Message::Ping(Bytes::from_static(b""))).await;
                         if let Err(e) = res {
                             error!(%e, "Failed to send ping, websocket likely closed unexpectedly");
                             break;
                         }
+                    }
                 }
             }
         }
@@ -283,10 +298,14 @@ pub async fn handle_run(
 
     // Best-effort close handshake; the connection is going away either way.
     let _ = websocket.close(None).await;
+    Ok(())
+}
 
-    // Fetch final job status so the user knows the outcome and the process exit
-    // code reflects it: success only on `Completed`, error otherwise.
-    // The DB update may lag behind the EndOfLogs sentinel, so poll briefly.
+/// Fetch the final job status so the user knows the outcome and the process
+/// exit code reflects it: success only on `Completed`, error otherwise.
+///
+/// The DB update may lag behind the `EndOfLogs` sentinel, so poll briefly.
+async fn await_final_status(client: &AuthenticatedClient, job_id: Uuid) -> Result<(), CliError> {
     eprint!("Waiting for final job status...");
     let mut poll_delay = INITIAL_POLL_DELAY;
     for _ in 0..FINAL_STATUS_POLL_ATTEMPTS {
@@ -295,7 +314,7 @@ pub async fn handle_run(
                 eprintln!();
                 return Err(CliError::Interrupted);
             }
-            polled = poll_job_status(&client, job_id, poll_delay) => {
+            polled = poll_job_status(client, job_id, poll_delay) => {
                 poll_delay = POLL_INTERVAL;
                 // A failed poll may succeed on the next attempt, so ignore
                 // errors here and let the attempt counter decide.
@@ -304,10 +323,7 @@ pub async fn handle_run(
                         eprintln!(" Status: {status}");
                         return match status {
                             JobStatusView::Completed => Ok(()),
-                            JobStatusView::Failed => Err(CliError::JobFailed),
-                            JobStatusView::Cancelled => Err(CliError::JobCancelled),
-                            JobStatusView::Timeout => Err(CliError::JobTimedOut),
-                            _ => Err(CliError::StatusUnknown),
+                            status => Err(job_failure(status).unwrap_or(CliError::StatusUnknown)),
                         };
                     }
                     eprint!(".");
@@ -318,4 +334,31 @@ pub async fn handle_run(
     eprintln!("Job status: unknown (timed out waiting for final status)");
 
     Err(CliError::StatusUnknown)
+}
+
+/// Handle the `run` command: resolve the board, upload the file, wait for the
+/// job to start, stream its logs and report the final status.
+pub async fn handle_run(
+    cfg: UploadConfig,
+    requested_board: String,
+    file_path: PathBuf,
+    api_key_from_env: bool,
+    wait_timeout: u64,
+    logging_config: crate::api::generated::types::LoggingConfig,
+) -> Result<(), CliError> {
+    let client = get_authenticated_client(&cfg.server, api_key_from_env).await?;
+
+    let board_mpn = resolve_board(&client, requested_board).await?;
+    info!("Running upload for board: {}", board_mpn);
+
+    let job_id = submit_job(file_path, board_mpn, &cfg, &client, logging_config).await?;
+    eprintln!("Submitted file for Job ID {job_id}");
+
+    match wait_for_job_start(&client, job_id, Duration::from_secs(wait_timeout)).await? {
+        JobStartOutcome::FinishedEarly => return Ok(()),
+        JobStartOutcome::Running => {}
+    }
+
+    stream_logs(&client, job_id).await?;
+    await_final_status(&client, job_id).await
 }
