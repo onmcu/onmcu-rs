@@ -77,33 +77,36 @@ const EXIT_FORBIDDEN: u8 = 14;
 
 impl CliError {
     /// Return the exit code for this kind of error.
+    #[must_use]
     pub fn exit_code(&self) -> ExitCode {
         let code: u8 = match self {
-            CliError::Config(_) => 3,
-            CliError::Auth(_) => EXIT_AUTH,
-            CliError::Api(e) => api_exit_code(e),
-            CliError::Upload(UploadError::Api(e)) => api_exit_code(e),
-            CliError::Upload(_) => 6,
-            CliError::Login(LoginError::Keyring(_) | LoginError::SaveKeyring(_)) => EXIT_AUTH,
-            CliError::Login(_) => 7,
-            CliError::BoardNotFound(_) => 8,
-            CliError::NoDeviceAvailable => 9,
-            CliError::JobStatus(e) | CliError::LogStream(e) => api_exit_code(e),
-            CliError::JobFailed => 10,
-            CliError::JobCancelled => 11,
-            CliError::JobTimedOut => 12,
-            CliError::StatusUnknown => 13,
-            CliError::Update(_) => 15,
-            CliError::UnexpectedArgs(_) => 2,
+            Self::Config(_) => 3,
+            Self::Api(e)
+            | Self::Upload(UploadError::Api(e))
+            | Self::JobStatus(e)
+            | Self::LogStream(e) => api_exit_code(e),
+            Self::Upload(_) => 6,
+            Self::Auth(_) | Self::Login(LoginError::Keyring(_) | LoginError::SaveKeyring(_)) => {
+                EXIT_AUTH
+            }
+            Self::Login(_) => 7,
+            Self::BoardNotFound(_) => 8,
+            Self::NoDeviceAvailable => 9,
+            Self::JobFailed => 10,
+            Self::JobCancelled => 11,
+            Self::JobTimedOut => 12,
+            Self::StatusUnknown => 13,
+            Self::Update(_) => 15,
+            Self::UnexpectedArgs(_) => 2,
             // 128 + SIGINT, the conventional exit code for Ctrl+C.
-            CliError::Interrupted => 130,
+            Self::Interrupted => 130,
         };
         ExitCode::from(code)
     }
 }
 
 /// Return the exit code assigned to an [`ApiError`] variant.
-fn api_exit_code(err: &ApiError) -> u8 {
+const fn api_exit_code(err: &ApiError) -> u8 {
     match err {
         ApiError::InvalidApiKey => EXIT_AUTH,
         ApiError::AccessDenied => EXIT_FORBIDDEN,

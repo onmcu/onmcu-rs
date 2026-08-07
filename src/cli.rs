@@ -27,13 +27,19 @@ pub struct Cli {
 }
 
 impl Cli {
+    /// Dispatch the command to the appropriate handler
+    ///
+    /// # Errors
+    /// Returns a [`CliError`] if the command could not be dispatched.
     pub async fn dispatch(self) -> Result<(), CliError> {
         // Load the config lazily so a broken config file can't block
         // commands that never read it, like `login`.
         let config_path = self.config;
-        let load_config = || match config_path {
-            Some(ref path) => UploadConfig::from_file(path),
-            None => Ok(UploadConfig::default()),
+        let load_config = || {
+            config_path.as_ref().map_or_else(
+                || Ok(UploadConfig::default()),
+                |path| UploadConfig::from_file(path),
+            )
         };
 
         match self.command {
@@ -72,9 +78,7 @@ impl Cli {
                 )
                 .await
             }
-            Commands::Login { relogin } => {
-                login::handle_login(relogin).await.map_err(CliError::from)
-            }
+            Commands::Login { relogin } => login::handle_login(relogin).map_err(CliError::from),
             Commands::ListBoards { api_key_from_env } => {
                 list_boards::handle_list_boards(load_config()?, api_key_from_env).await
             }
@@ -86,7 +90,8 @@ impl Cli {
     ///
     /// `update` does, blocking and uncached, so the background check would only
     /// repeat the same lookup and print the notice twice.
-    pub fn checks_for_updates_itself(&self) -> bool {
+    #[must_use]
+    pub const fn checks_for_updates_itself(&self) -> bool {
         matches!(self.command, Commands::Update)
     }
 }
@@ -101,7 +106,7 @@ pub enum Commands {
         /// Path to the binary or package to flash
         #[arg(short, long)]
         file: PathBuf,
-        /// Read API key from env var ONMCU_API_KEY
+        /// Read API key from env var `ONMCU_API_KEY`
         #[arg(long)]
         api_key_from_env: bool,
         /// Job timeout in seconds (59-86400, default: 600)
@@ -131,7 +136,7 @@ pub enum Commands {
     },
     /// List the available boards
     ListBoards {
-        /// Read API key from env var ONMCU_API_KEY
+        /// Read API key from env var `ONMCU_API_KEY`
         #[arg(long)]
         api_key_from_env: bool,
     },
@@ -148,6 +153,7 @@ pub enum LoggingMode {
     Serial,
 }
 
+#[must_use]
 pub fn build() -> Cli {
     Cli::parse()
 }

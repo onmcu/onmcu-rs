@@ -24,7 +24,7 @@ const fn mib_to_bytes(mib: usize) -> usize {
 }
 
 /// Longest pause between chunk upload retries.
-const MAX_RETRY_BACKOFF: Duration = Duration::from_secs(60);
+const MAX_RETRY_BACKOFF: Duration = Duration::from_mins(1);
 
 /// Upload limits from the server
 #[derive(Debug, Clone)]
@@ -201,7 +201,7 @@ async fn upload_chunks(
     client: &AuthenticatedClient,
 ) -> Result<(), UploadError> {
     // Setup progress bar
-    let pb = ProgressBar::new(prepared_file.total_chunks as u64);
+    let pb = ProgressBar::new(u64::from(prepared_file.total_chunks));
     pb.set_style(
         ProgressStyle::with_template("[{elapsed_precise}] {bar:40.cyan/blue} {pos}/{len} chunks")
             .unwrap_or_else(|_| ProgressStyle::default_bar())
@@ -245,7 +245,7 @@ async fn upload_chunks(
 /// Whether a chunk upload failure is worth retrying: transport problems,
 /// rate limiting, and server-side errors can be transient; anything else
 /// (rejected key, bad request, ...) will fail identically on every attempt.
-fn is_transient(err: &UploadError) -> bool {
+const fn is_transient(err: &UploadError) -> bool {
     match err {
         UploadError::Api(ApiError::Transport(_)) => true,
         UploadError::Api(ApiError::Server { status, .. }) => *status >= 500 || *status == 429,
@@ -269,7 +269,7 @@ async fn upload_chunk_with_retry(
         match try_upload_job_chunk(client, job_id, chunk_idx, total_chunks, chunk_data.clone())
             .await
         {
-            Ok(_) => break,
+            Ok(()) => break,
             Err(e) if !is_transient(&e) => return Err(e),
             Err(e) if attempts <= cfg.retries.into() => {
                 warn!(

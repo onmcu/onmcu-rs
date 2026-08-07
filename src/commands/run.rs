@@ -133,9 +133,9 @@ pub async fn handle_run(
         find_board(&requested_board, board_list.iter()).map(|board| board.board_mpn.clone())
     else {
         info!("Available boards:");
-        board_list
-            .iter()
-            .for_each(|board| info!("  {}", board.board_mpn));
+        for board in board_list {
+            info!("  {}", board.board_mpn);
+        }
 
         return Err(CliError::BoardNotFound(requested_board));
     };
@@ -163,11 +163,10 @@ pub async fn handle_run(
                         CancelOutcome::Cancelled => return Err(CliError::JobCancelled),
                         CancelOutcome::Resumed => {
                             eprint!("⏳ Waiting for job to start...");
-                            continue;
                         }
                     }
                 }
-                _ = tokio::time::sleep_until(deadline) => {
+                () = tokio::time::sleep_until(deadline) => {
                     eprintln!();
                     // Only prompt when someone can answer; scripts and CI
                     // fall through to cancelling the pending job.
@@ -235,14 +234,12 @@ pub async fn handle_run(
                     CancelOutcome::Cancelled => break,
                     CancelOutcome::Resumed => {
                         info!("Job cancellation aborted, continuing to stream logs...");
-                        continue;
                     }
                 }
             }
             // Wait for the next message or timeout
             res = timeout(Duration::from_secs(30), websocket.try_next()) => {
-                match res {
-                    Ok(message_result) => {
+                if let Ok(message_result) = res {
                         // A stream error is not necessarily a job failure, so
                         // stop reading logs and let the final-status poll decide
                         // the outcome rather than failing outright here.
@@ -272,15 +269,13 @@ pub async fn handle_run(
                             Some(_) => {}   // Handle other message types if needed
                             None => break,  // WebSocket stream ended
                         }
-                    }
-                    Err(_) => {
+                } else {
                         debug!("No message received for 30 seconds, sending ping...");
                         let res = websocket.send(Message::Ping(Bytes::from_static(b""))).await;
                         if let Err(e) = res {
                             error!(%e, "Failed to send ping, websocket likely closed unexpectedly");
                             break;
                         }
-                    }
                 }
             }
         }
@@ -314,9 +309,8 @@ pub async fn handle_run(
                             JobStatusView::Timeout => Err(CliError::JobTimedOut),
                             _ => Err(CliError::StatusUnknown),
                         };
-                    } else {
-                        eprint!(".");
                     }
+                    eprint!(".");
                 }
             }
         }

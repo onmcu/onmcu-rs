@@ -31,7 +31,8 @@ pub fn shutdown() {
 
 /// Whether a keyring error means no usable backend is reachable (none running
 /// or none configured), as opposed to one that exists but is locked.
-pub fn is_unavailable(err: &KeyringError) -> bool {
+#[must_use]
+pub const fn is_unavailable(err: &KeyringError) -> bool {
     matches!(
         err,
         KeyringError::NoDefaultStore | KeyringError::PlatformFailure(_)
@@ -40,12 +41,14 @@ pub fn is_unavailable(err: &KeyringError) -> bool {
 
 /// Whether a keyring error means the backend is present but access was denied,
 /// typically because the keyring is locked.
-pub fn is_locked(err: &KeyringError) -> bool {
+#[must_use]
+pub const fn is_locked(err: &KeyringError) -> bool {
     matches!(err, KeyringError::NoStorageAccess(_))
 }
 
 /// A user-facing explanation for a missing or unreachable keyring backend.
-pub fn unavailable_hint() -> &'static str {
+#[must_use]
+pub const fn unavailable_hint() -> &'static str {
     #[cfg(target_os = "linux")]
     {
         "The OS keyring is not available.\n\
@@ -64,7 +67,7 @@ pub fn unavailable_hint() -> &'static str {
 }
 
 /// A user-facing explanation for a locked keyring.
-pub fn locked_hint() -> &'static str {
+pub const fn locked_hint() -> &'static str {
     "The OS keyring is locked. Unlock it (e.g. log in to your desktop session or \
      unlock your login keyring) and try again.\n\
      Alternatively, set the ONMCU_API_KEY environment variable and pass \

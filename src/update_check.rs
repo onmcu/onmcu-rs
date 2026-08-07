@@ -138,10 +138,7 @@ impl UpdateCheck {
 
 /// True when `name` is present in the environment and not set to an "off" value.
 fn is_set(name: &str) -> bool {
-    match std::env::var(name) {
-        Ok(value) => !matches!(value.as_str(), "" | "0" | "false"),
-        Err(_) => false,
-    }
+    std::env::var(name).is_ok_and(|value| !matches!(value.as_str(), "" | "0" | "false"))
 }
 
 /// Look up the newest published release right now, for the `update` subcommand.
@@ -208,6 +205,10 @@ async fn fetch_and_cache() -> Option<Version> {
 ///
 /// Cargo rejects a package whose `version` is not semver, so parsing it cannot
 /// fail; `own_version_is_semver` guards that assumption.
+///
+/// # Panics
+/// When the [`CURRENT_VERSION`] is not a valid semver version.
+#[must_use]
 pub fn current_version() -> Version {
     Version::parse(CURRENT_VERSION).expect("CARGO_PKG_VERSION is valid semver")
 }
@@ -284,7 +285,7 @@ impl Cache {
     /// Best effort: an unwritable cache directory only costs a lookup next run.
     fn store(latest: Option<String>) {
         let Some(path) = cache_path() else { return };
-        let cache = Cache {
+        let cache = Self {
             checked_at: now_unix(),
             latest,
         };
@@ -333,6 +334,7 @@ fn now_unix() -> u64 {
 }
 
 /// The message shown when a newer release exists.
+#[must_use]
 pub fn notice(latest: &Version) -> String {
     format!(
         "A new version of onmcu is available: {CURRENT_VERSION} -> {latest}\n\

@@ -22,7 +22,7 @@ pub enum LoginError {
 }
 
 /// `onmcu login [--relogin]`
-pub async fn handle_login(relogin: bool) -> Result<(), LoginError> {
+pub fn handle_login(relogin: bool) -> Result<(), LoginError> {
     let entry = Entry::new("onmcu-cli", "api_key").map_err(AuthError::from)?;
     match entry.get_password() {
         Ok(_) if !relogin => {

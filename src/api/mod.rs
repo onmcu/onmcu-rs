@@ -12,6 +12,10 @@ use crate::error::CliError;
 
 /// Build the authenticated client and verify, against the controller, that the
 /// server is reachable, runs a supported version and accepts the key.
+///
+/// # Errors
+/// Returns a [`CliError`] if the API key could not be retrieved from the keyring,
+/// or if the controller version is not supported or the key is not accepted.
 pub async fn get_authenticated_client(
     server_url: &url::Url,
     api_key_from_env: bool,

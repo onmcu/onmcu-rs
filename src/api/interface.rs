@@ -15,9 +15,12 @@ pub fn find_board<'a>(
 const PAGE_SIZE: u32 = 100;
 
 /// Fetch all boards from the server, paginating automatically.
+///
+/// # Errors
+/// Returns an [`ApiError`] when the server could not be reached or returned unexpected status.
 pub async fn fetch_all_boards(client: &AuthenticatedClient) -> Result<Vec<BoardInfo>, ApiError> {
     let mut all_boards = Vec::new();
-    let mut offset: u32 = 0;
+    let mut offset: usize = 0;
 
     loop {
         let response = client
@@ -33,12 +36,12 @@ pub async fn fetch_all_boards(client: &AuthenticatedClient) -> Result<Vec<BoardI
         let received = page.items.len();
         all_boards.extend(page.items);
 
-        if received == 0 || (all_boards.len() as u32) >= page.total_count {
+        if received == 0 || all_boards.len() >= page.total_count as usize {
             break;
         }
         // Advance by what the server actually sent; it may return fewer
         // items than requested even when more pages remain.
-        offset += received as u32;
+        offset += received;
     }
 
     Ok(all_boards)

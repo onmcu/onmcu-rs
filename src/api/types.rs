@@ -49,6 +49,9 @@ pub enum ApiKeyFormatError {
 }
 
 /// Validate API key format: `<version>_<uuid>_<base64-secret>`
+///
+/// # Errors
+/// Returns an [`ApiKeyFormatError`] explaining what the exact format issue was.
 pub fn validate_api_key(key: &str) -> Result<(), ApiKeyFormatError> {
     if key.is_empty() {
         return Err(ApiKeyFormatError::Empty);
@@ -79,10 +82,10 @@ pub fn validate_api_key(key: &str) -> Result<(), ApiKeyFormatError> {
 impl From<KeyringError> for AuthError {
     fn from(e: KeyringError) -> Self {
         match e {
-            KeyringError::NoEntry => AuthError::NoApiKey,
-            e if crate::keyring::is_unavailable(&e) => AuthError::KeyringUnavailable(e),
-            e if crate::keyring::is_locked(&e) => AuthError::KeyringLocked(e),
-            e => AuthError::KeyringAccess(e),
+            KeyringError::NoEntry => Self::NoApiKey,
+            e if crate::keyring::is_unavailable(&e) => Self::KeyringUnavailable(e),
+            e if crate::keyring::is_locked(&e) => Self::KeyringLocked(e),
+            e => Self::KeyringAccess(e),
         }
     }
 }
@@ -94,6 +97,9 @@ pub struct AuthenticatedClient {
 
 impl AuthenticatedClient {
     /// Create a new authenticated client with API key from keyring
+    ///
+    /// # Errors
+    /// Returns an [`AuthError`] if the API key could not be retrieved from the keyring.
     pub fn new_with_api_key(server_url: &Url, api_key_from_env: bool) -> Result<Self, AuthError> {
         // Only touch the keyring when not reading the key from the environment,
         // so ONMCU_API_KEY works even when no keyring backend is available.
@@ -106,14 +112,15 @@ impl AuthenticatedClient {
 
         let api_client = Client::new(server_url.as_str().trim_end_matches('/'));
 
-        Ok(AuthenticatedClient {
+        Ok(Self {
             api_client,
             api_key,
         })
     }
 
     /// Get the API client for making requests
-    pub fn api(&self) -> &Client {
+    #[must_use]
+    pub const fn api(&self) -> &Client {
         &self.api_client
     }
 }

@@ -94,6 +94,15 @@ fn is_supported(
 ///
 /// Supported means semver-compatible with the OpenAPI spec this client was
 /// generated from, the same rule Cargo applies to crate dependencies.
+///
+/// # Errors
+/// Returns an [`ApiError::UnsupportedServerVersion`] when the version is incompatible.
+/// Returns according errors when the controller API could not be reached or the returned
+/// version could not be parsed.
+///
+/// # Panics
+/// Panics if the version in the generated `OpenAPI` client cannot be parsed.
+/// This should never happen in practice because the spec must contain a version.
 pub async fn check_controller_version(client: &AuthenticatedClient) -> Result<(), ApiError> {
     // Retrieve controller version from version endpoint
     let controller_version_res =
@@ -119,7 +128,8 @@ pub async fn check_controller_version(client: &AuthenticatedClient) -> Result<()
     let client_version = generated::Client::api_version();
 
     // Turn the client_version into a semver version requirement
-    let version_req = VersionReq::parse(&format!("^{client_version}")).unwrap();
+    let version_req = VersionReq::parse(&format!("^{client_version}"))
+        .expect("Invalid version in generated OpenAPI client!");
 
     if is_supported(
         &controller_version,
@@ -136,6 +146,11 @@ pub async fn check_controller_version(client: &AuthenticatedClient) -> Result<()
 }
 
 /// Verify that the API key is accepted by the controller.
+///
+/// # Errors
+/// Returns [`ApiError::InvalidApiKey`] when the key is rejected,
+/// [`ApiError::VerificationTransport`] when the server could not be reached,
+/// or [`ApiError::VerificationServer`] when the server returns an unexpected status.
 pub async fn verify_access(client: &AuthenticatedClient) -> Result<(), ApiError> {
     let result = client
         .api()
@@ -147,7 +162,7 @@ pub async fn verify_access(client: &AuthenticatedClient) -> Result<(), ApiError>
     let Err(err) = result else { return Ok(()) };
 
     Err(match err.status().map(|s| s.as_u16()) {
-        Some(401) | Some(403) => ApiError::InvalidApiKey,
+        Some(401 | 403) => ApiError::InvalidApiKey,
         None => ApiError::VerificationTransport {
             server_url: client.api_client.baseurl.clone(),
             message: err.to_string(),
@@ -172,12 +187,12 @@ fn extract_body(err: ClientError) -> (String, String) {
 impl From<ClientError> for ApiError {
     fn from(err: ClientError) -> Self {
         match err.status().map(|s| s.as_u16()) {
-            Some(401) => ApiError::InvalidApiKey,
-            Some(403) => ApiError::AccessDenied,
-            Some(404) => ApiError::NotFound(extract_body(err).0),
+            Some(401) => Self::InvalidApiKey,
+            Some(403) => Self::AccessDenied,
+            Some(404) => Self::NotFound(extract_body(err).0),
             Some(status) => {
                 let (message, request_id) = extract_body(err);
-                ApiError::Server {
+                Self::Server {
                     status,
                     message,
                     request_id,
@@ -186,8 +201,8 @@ impl From<ClientError> for ApiError {
             None => match err {
                 generated::Error::CommunicationError(e)
                 | generated::Error::InvalidUpgrade(e)
-                | generated::Error::ResponseBodyError(e) => ApiError::Transport(e.to_string()),
-                other => ApiError::Other(other.to_string()),
+                | generated::Error::ResponseBodyError(e) => Self::Transport(e.to_string()),
+                other => Self::Other(other.to_string()),
             },
         }
     }
