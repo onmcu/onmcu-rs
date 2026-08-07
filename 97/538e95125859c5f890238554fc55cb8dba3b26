@@ -1,0 +1,27 @@
+src/commands/run.rs
+  s_3a2c07fb0e7c49::t_b99f1005efb6d9 177,203,206,211,215,217-221
+  s_3a2c07fb0e7c49::t_ef69dc4fcb29d5 227,229-232
+  s_3a2c07fb0e7c49::t_8fe04af59d2edb 34-36
+  s_3a2c07fb0e7c49::t_418946c460567a 304-306,308
+  s_3a2c07fb0e7c49::t_cf55cea0be0594 307
+  s_3a2c07fb0e7c49::t_15c6b1ae50a623 119
+  s_3a2c07fb0e7c49::t_ea6dc4eade0fe1 118,120-126,128-134,136,139-141,143-148,150-156,158-166
+  s_3a2c07fb0e7c49::t_579130fabd0b46 317,326,338-363
+  s_3a2c07fb0e7c49::t_dca9244463bd6d 252-253,260-268,270-287,293,301-302,364
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "97538e95125859c5f890238554fc55cb8dba3b26",
+  "prompts": {},
+  "sessions": {
+    "s_3a2c07fb0e7c49": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c7bf2047-5cd8-4228-851b-8250359072c7",
+        "model": "claude-fable-5"
+      },
+      "human_author": "JuliDi <julian@systemscape.de>"
+    }
+  }
+}
