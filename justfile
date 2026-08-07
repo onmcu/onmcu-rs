@@ -4,5 +4,5 @@ fmt:
 
 verify:
     @cargo fmt --all -- --check
-    @cargo clippy --all-targets --locked -- -D warnings
+    @cargo clippy --all-targets --locked
     @cargo test

@@ -67,6 +67,7 @@ pub const fn unavailable_hint() -> &'static str {
 }
 
 /// A user-facing explanation for a locked keyring.
+#[must_use]
 pub const fn locked_hint() -> &'static str {
     "The OS keyring is locked. Unlock it (e.g. log in to your desktop session or \
      unlock your login keyring) and try again.\n\
