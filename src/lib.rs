@@ -3,4 +3,5 @@ pub mod cli;
 pub mod commands;
 pub mod error;
 pub mod keyring;
+pub mod update_check;
 pub mod upload;

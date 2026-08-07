@@ -28,10 +28,10 @@ cargo install onmcu --locked
 Download the archive matching your platform from the
 [latest release](https://github.com/onmcu/onmcu-rs/releases/latest):
 
-- Linux x86_64: `onmcu-x86_64-unknown-linux-gnu.tar.xz`
-- Linux aarch64: `onmcu-aarch64-unknown-linux-gnu.tar.xz`
-- macOS Apple Silicon: `onmcu-aarch64-apple-darwin.tar.xz`
-- macOS Intel: `onmcu-x86_64-apple-darwin.tar.xz`
+- Linux x86_64: `onmcu-x86_64-unknown-linux-gnu.tar.gz`
+- Linux aarch64: `onmcu-aarch64-unknown-linux-gnu.tar.gz`
+- macOS Apple Silicon: `onmcu-aarch64-apple-darwin.tar.gz`
+- macOS Intel: `onmcu-x86_64-apple-darwin.tar.gz`
 - Windows x86_64: `onmcu-x86_64-pc-windows-msvc.zip`
 
 ## Usage
@@ -77,6 +77,26 @@ job_timeout_seconds = 600
 Every key is optional and falls back to the default shown above when omitted,
 so you only need to specify the settings that differ from the defaults. See
 [`config.example.toml`](config.example.toml) for a commented template.
+
+### Update notification
+
+The CLI checks once a day whether a newer release has been published and prints
+the matching install command when one has. The result is cached in
+`$XDG_CACHE_HOME/onmcu/update-check.json`, which defaults to
+`~/.cache/onmcu/update-check.json` on Linux and macOS, and lives under
+`%LOCALAPPDATA%` on Windows. The
+check is skipped when output is not a terminal and when `CI` is set, never
+delays a command by more than a second, and never makes one fail. Set
+`ONMCU_NO_UPDATE_CHECK=1` to turn it off entirely.
+
+To check on demand, run:
+
+```sh
+onmcu update
+```
+
+This ignores the cache and the settings above, and reports a failed lookup
+instead of staying quiet, exiting non-zero.
 
 ## Development
 

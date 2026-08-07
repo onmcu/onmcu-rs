@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use crate::{
     api::generated::types::{LoggingConfig, RttConfig, SerialConfig},
-    commands::{list_boards, login, run},
+    commands::{list_boards, login, run, update},
     error::CliError,
     upload::UploadConfig,
 };
@@ -78,7 +78,16 @@ impl Cli {
             Commands::ListBoards { api_key_from_env } => {
                 list_boards::handle_list_boards(load_config()?, api_key_from_env).await
             }
+            Commands::Update => update::handle_update().await.map_err(CliError::from),
         }
+    }
+
+    /// Whether this command performs its own update check.
+    ///
+    /// `update` does, blocking and uncached, so the background check would only
+    /// repeat the same lookup and print the notice twice.
+    pub fn checks_for_updates_itself(&self) -> bool {
+        matches!(self.command, Commands::Update)
     }
 }
 
@@ -126,6 +135,8 @@ pub enum Commands {
         #[arg(long)]
         api_key_from_env: bool,
     },
+    /// Check whether a newer release of onmcu is available
+    Update,
 }
 
 /// Firmware log transport selected on the command line.

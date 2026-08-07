@@ -30,15 +30,24 @@ async fn main() -> ExitCode {
     // it report a clear error later; ONMCU_API_KEY works without it.
     keyring::init_default_store();
 
+    // Runs alongside the command so the lookup costs no extra wall-clock time.
+    let update_check = update_check::spawn(cli.checks_for_updates_itself());
+
     let result = cli.dispatch().await;
 
     keyring::shutdown();
 
-    match result {
+    let exit_code = match result {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
             eprintln!("Error: {e}");
             e.exit_code()
         }
-    }
+    };
+
+    // Reported after any error, so the notice is the last thing on screen and
+    // never pushes the actual failure out of view.
+    update_check.report().await;
+
+    exit_code
 }

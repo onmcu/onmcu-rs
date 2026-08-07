@@ -9,6 +9,7 @@ use thiserror::Error;
 
 use crate::api::{ApiError, AuthError};
 use crate::commands::login::LoginError;
+use crate::update_check::UpdateError;
 use crate::upload::{ConfigError, UploadError};
 
 #[derive(Error, Debug)]
@@ -27,6 +28,9 @@ pub enum CliError {
 
     #[error(transparent)]
     Login(#[from] LoginError),
+
+    #[error(transparent)]
+    Update(#[from] UpdateError),
 
     #[error(
         "No matching board found for {0}\nGet supported boards using the `list-boards` command"
@@ -89,6 +93,7 @@ impl CliError {
             CliError::JobCancelled => 11,
             CliError::JobTimedOut => 12,
             CliError::StatusUnknown => 13,
+            CliError::Update(_) => 15,
             CliError::UnexpectedArgs(_) => 2,
             // 128 + SIGINT, the conventional exit code for Ctrl+C.
             CliError::Interrupted => 130,
