@@ -2,7 +2,7 @@ use std::process::ExitCode;
 
 use tracing_subscriber::FmtSubscriber;
 
-use onmcu::*;
+use onmcu::{cli, keyring, update_check};
 
 #[tokio::main]
 async fn main() -> ExitCode {

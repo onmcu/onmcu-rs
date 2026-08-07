@@ -24,7 +24,7 @@ const fn mib_to_bytes(mib: usize) -> usize {
 }
 
 /// Longest pause between chunk upload retries.
-const MAX_RETRY_BACKOFF: Duration = Duration::from_secs(60);
+const MAX_RETRY_BACKOFF: Duration = Duration::from_mins(1);
 
 /// Upload limits from the server
 #[derive(Debug, Clone)]
@@ -107,7 +107,9 @@ async fn prepare_file(
     // Calculate optimal chunk size. The configured value is validated at
     // config load (1-10 MiB), so only a nonsensical server limit can push
     // this out of range.
-    let chunk_size = std::cmp::min(limits.max_chunk_size as usize, mib_to_bytes(cfg.chunk_size));
+    let chunk_size = usize::try_from(limits.max_chunk_size)
+        .unwrap_or(usize::MAX)
+        .min(mib_to_bytes(cfg.chunk_size));
     if chunk_size == 0 {
         return Err(UploadError::IllegalChunkSize {
             chunk_size,
@@ -115,7 +117,10 @@ async fn prepare_file(
         });
     }
 
-    let total_chunks = file_size.div_ceil(chunk_size as u64) as u32;
+    // Only reachable if the server reports a tiny chunk size for a large file.
+    let total_chunks = u32::try_from(file_size.div_ceil(chunk_size as u64)).map_err(|_| {
+        UploadError::InvalidRequest("file needs more chunks than the protocol allows".into())
+    })?;
 
     // Calculate file hash for submission. Hashing reads the whole file, so
     // run it off the async runtime instead of blocking it.
@@ -201,7 +206,7 @@ async fn upload_chunks(
     client: &AuthenticatedClient,
 ) -> Result<(), UploadError> {
     // Setup progress bar
-    let pb = ProgressBar::new(prepared_file.total_chunks as u64);
+    let pb = ProgressBar::new(u64::from(prepared_file.total_chunks));
     pb.set_style(
         ProgressStyle::with_template("[{elapsed_precise}] {bar:40.cyan/blue} {pos}/{len} chunks")
             .unwrap_or_else(|_| ProgressStyle::default_bar())
@@ -214,10 +219,9 @@ async fn upload_chunks(
 
     for chunk_idx in 0..prepared_file.total_chunks {
         let offset = u64::from(chunk_idx) * prepared_file.chunk_size as u64;
-        let to_read = std::cmp::min(
-            prepared_file.chunk_size as u64,
-            prepared_file.file_size - offset,
-        ) as usize;
+        let to_read = usize::try_from(prepared_file.file_size - offset)
+            .unwrap_or(usize::MAX)
+            .min(prepared_file.chunk_size);
 
         prepared_file.file.seek(SeekFrom::Start(offset))?;
         prepared_file.file.read_exact(&mut buffer[..to_read])?;
@@ -245,7 +249,7 @@ async fn upload_chunks(
 /// Whether a chunk upload failure is worth retrying: transport problems,
 /// rate limiting, and server-side errors can be transient; anything else
 /// (rejected key, bad request, ...) will fail identically on every attempt.
-fn is_transient(err: &UploadError) -> bool {
+const fn is_transient(err: &UploadError) -> bool {
     match err {
         UploadError::Api(ApiError::Transport(_)) => true,
         UploadError::Api(ApiError::Server { status, .. }) => *status >= 500 || *status == 429,
@@ -269,7 +273,7 @@ async fn upload_chunk_with_retry(
         match try_upload_job_chunk(client, job_id, chunk_idx, total_chunks, chunk_data.clone())
             .await
         {
-            Ok(_) => break,
+            Ok(()) => break,
             Err(e) if !is_transient(&e) => return Err(e),
             Err(e) if attempts <= cfg.retries.into() => {
                 warn!(
