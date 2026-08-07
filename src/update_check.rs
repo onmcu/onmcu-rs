@@ -412,8 +412,8 @@ mod tests {
     #[test]
     fn cache_freshness_depends_on_age_and_on_whether_a_version_was_found() {
         let found = Some("0.1.0");
-        let cache_ttl = CACHE_TTL.as_secs() as i64;
-        let retry_ttl = RETRY_TTL.as_secs() as i64;
+        let cache_ttl = CACHE_TTL.as_secs().cast_signed();
+        let retry_ttl = RETRY_TTL.as_secs().cast_signed();
 
         for (label, age, latest, fresh) in [
             ("just written", 0, found, true),
