@@ -4,7 +4,7 @@
 //! Secret Service, which needs a D-Bus session and a keyring daemon (GNOME
 //! Keyring, KWallet, KeePassXC); when it's missing we surface a clear hint.
 
-use keyring_core::Error as KeyringError;
+use keyring_core::{Entry, Error as KeyringError};
 
 #[cfg(target_os = "linux")]
 use dbus_secret_service_keyring_store::Store;
@@ -12,6 +12,7 @@ use dbus_secret_service_keyring_store::Store;
 #[cfg(target_os = "macos")]
 use apple_native_keyring_store::keychain::Store;
 
+use url::Url;
 #[cfg(target_os = "windows")]
 use windows_native_keyring_store::Store;
 
@@ -22,6 +23,16 @@ pub fn init_default_store() {
         Ok(store) => keyring_core::set_default_store(store),
         Err(e) => tracing::debug!("keyring backend unavailable at startup: {e}"),
     }
+}
+
+pub fn get_entry(server_url: &Url) -> Result<Entry, keyring_core::Error> {
+    Entry::new(
+        "onmcu-cli",
+        &format!(
+            "api_key__{}",
+            server_url.host_str().unwrap_or("unknown_host")
+        ),
+    )
 }
 
 /// Release the default store on shutdown.

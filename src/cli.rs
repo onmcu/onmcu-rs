@@ -78,7 +78,10 @@ impl Cli {
                 )
                 .await
             }
-            Commands::Login { relogin } => login::handle_login(relogin).map_err(CliError::from),
+            Commands::Login { relogin } => {
+                let server_url = &load_config()?.server;
+                login::handle_login(relogin, server_url).map_err(CliError::from)
+            }
             Commands::ListBoards { api_key_from_env } => {
                 list_boards::handle_list_boards(load_config()?, api_key_from_env).await
             }

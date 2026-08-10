@@ -3,7 +3,7 @@ use secrecy::SecretString;
 use thiserror::Error;
 use url::Url;
 
-use crate::api::generated::prelude::*;
+use crate::{api::generated::prelude::*, keyring};
 
 #[derive(Error, Debug)]
 pub enum AuthError {
@@ -106,7 +106,8 @@ impl AuthenticatedClient {
         let api_key = if api_key_from_env {
             get_api_key_from_env()?
         } else {
-            let entry = Entry::new("onmcu-cli", "api_key")?;
+            let entry = keyring::get_entry(server_url)?;
+            tracing::debug!("Getting API key from keystore for entry {entry:?}");
             get_api_key(&entry)?
         };
 
