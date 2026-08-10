@@ -1,10 +1,12 @@
-use keyring_core::{Entry, Error as KeyringError};
+use keyring_core::Error as KeyringError;
 use secrecy::zeroize::Zeroize as _;
 use secrecy::{ExposeSecret as _, SecretString};
 use std::io::{self, IsTerminal as _, Write};
 use thiserror::Error;
+use url::Url;
 
 use crate::api::{ApiKeyFormatError, AuthError, validate_api_key};
+use crate::keyring;
 
 #[derive(Error, Debug)]
 pub enum LoginError {
@@ -22,8 +24,9 @@ pub enum LoginError {
 }
 
 /// `onmcu login [--relogin]`
-pub fn handle_login(relogin: bool) -> Result<(), LoginError> {
-    let entry = Entry::new("onmcu-cli", "api_key").map_err(AuthError::from)?;
+pub fn handle_login(relogin: bool, server_url: &Url) -> Result<(), LoginError> {
+    let entry = keyring::get_entry(server_url).map_err(AuthError::from)?;
+
     match entry.get_password() {
         Ok(_) if !relogin => {
             eprintln!("Already logged in. To overwrite, run `onmcu login --relogin`.");
