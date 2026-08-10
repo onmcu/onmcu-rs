@@ -1,0 +1,20 @@
+src/api/types.rs
+  h_2e4fad1f0ddac3 6,109-110
+src/cli.rs
+  h_2e4fad1f0ddac3 81-84
+src/commands/login.rs
+  h_2e4fad1f0ddac3 1,6,9,27-29
+src/keyring.rs
+  h_2e4fad1f0ddac3 7,15,28-37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "68a282489c65f16e84e690fd92f3e9d8a3ef7935",
+  "prompts": {},
+  "humans": {
+    "h_2e4fad1f0ddac3": {
+      "author": "JuliDi <julian@systemscape.de>"
+    }
+  }
+}
