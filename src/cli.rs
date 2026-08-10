@@ -1,5 +1,6 @@
 use clap::{Parser, Subcommand, ValueEnum, crate_description, crate_name, crate_version};
 use std::path::PathBuf;
+use url::Url;
 
 use crate::{
     api::generated::types::{LoggingConfig, RttConfig, SerialConfig},
@@ -22,6 +23,10 @@ pub struct Cli {
     #[arg(short, long, env = "ONMCU_CLI_CONFIG_PATH")]
     config: Option<PathBuf>,
 
+    /// Server URL Override
+    #[arg(short, long)]
+    server: Option<Url>,
+
     #[command(subcommand)]
     pub command: Commands,
 }
@@ -36,10 +41,18 @@ impl Cli {
         // commands that never read it, like `login`.
         let config_path = self.config;
         let load_config = || {
-            config_path.as_ref().map_or_else(
+            let mut config = config_path.as_ref().map_or_else(
                 || Ok(UploadConfig::default()),
                 |path| UploadConfig::from_file(path),
-            )
+            );
+
+            // If the server_url override has been specified, update the config accordingly
+            if let Some(server) = self.server
+                && let Ok(config) = config.as_mut()
+            {
+                config.server = server;
+            }
+            config
         };
 
         match self.command {
