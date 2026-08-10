@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0](https://github.com/onmcu/onmcu-rs/compare/v0.2.0...v0.3.0) - 2026-08-10
+
+### Added
+
+- add -s/--server config override ([#61](https://github.com/onmcu/onmcu-rs/pull/61))
+- store api key per hostname ([#58](https://github.com/onmcu/onmcu-rs/pull/58))
+
 ## [0.2.0](https://github.com/onmcu/onmcu-rs/compare/v0.1.0...v0.2.0) - 2026-08-07
 
 ### Added
