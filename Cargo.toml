@@ -70,7 +70,7 @@ dbus-secret-service-keyring-store = { version = "1.0.0", features = [
 
 [build-dependencies]
 prettyplease = "0.3.0"
-progenitor = "0.14.0"
+progenitor = "0.15.1"
 serde_json = "1.0.151"
 syn = "3.0.3"
 
