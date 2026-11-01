@@ -47,7 +47,7 @@ chrono = { version = "0.4.45", default-features = false, features = [
   "std",
   "serde",
 ] }
-progenitor-client = "0.14.0"
+progenitor-client = "0.15.1"
 rand = "0.10.2"
 reqwest = { version = "0.13.4", default-features = false, features = [
   "json",
